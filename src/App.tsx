@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { TreePayload } from "./types";
+import { DataFilesHelp } from "./DataFilesHelp";
 import { BloodMigrationPanel } from "./BloodMigrationPanel";
 import { DualChessLayers } from "./DualChessLayers";
 import { DualFanChart } from "./DualFanChart";
@@ -21,6 +22,7 @@ import {
 } from "./MapView";
 import { RulersPageTest } from "./RulersPageTest";
 import { RulersView } from "./RulersView";
+import { RAW_GITHUB_RULERS_MAIN, RAW_GITHUB_TREE_MAIN } from "./repoDataUrls";
 import { leaveRulersTestPath, pathnameIsRulersTest, publicUrl } from "./rulersTestPath";
 import { MediaThumb } from "./MediaThumb";
 import { birthYear, rowRepresentativeYear, timeBandClass } from "./timeBands";
@@ -36,7 +38,7 @@ import {
 } from "./trace";
 
 const DEFAULT_ROOT = "@P1@";
-/** Default tree when no blob override — must include Vite `base` on GH Pages (e.g. `/ancestory/tree.json`). */
+/** Default tree when no blob override — `publicUrl` uses site root in dev, Vite `base` in prod (e.g. `/ancestory/tree.json`). */
 const DEFAULT_JSON = publicUrl("tree.json");
 
 function useTreeData(url: string | null) {
@@ -55,7 +57,15 @@ function useTreeData(url: string | null) {
       setData(j);
     } catch (e) {
       setData(null);
-      setErr(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      const networkish =
+        msg === "Failed to fetch" ||
+        (e instanceof TypeError && /fetch|network|load failed/i.test(msg)) ||
+        /networkerror|load failed|cors/i.test(msg);
+      const corsNote = networkish
+        ? " Some hosts block cross-origin fetches (CORS). Try the GitHub raw preset, publish JSON with permissive CORS, or use Quick load (paste / drop)."
+        : "";
+      setErr(msg + corsNote);
     } finally {
       setLoading(false);
     }
@@ -83,8 +93,13 @@ type DualMode = "pat-mat" | "pat-pat" | "quad";
 
 type DualVizMode = "table" | "fan" | "chess";
 
+type TreeSourcePreset = "site" | "github-main" | "custom";
+
 export function App() {
+  const [treeSourcePreset, setTreeSourcePreset] = useState<TreeSourcePreset>("site");
   const [jsonUrl, setJsonUrl] = useState(DEFAULT_JSON);
+  /** When set, overrides bundled `publicUrl("rulers.json")` for fetch (not used with rulers blob). */
+  const [rulersCustomUrl, setRulersCustomUrl] = useState("");
   /** Blob URL from dropped / pasted tree.json — overrides URL field for fetch */
   const [treeBlobUrl, setTreeBlobUrl] = useState<string | null>(null);
   const [rulersBlobUrl, setRulersBlobUrl] = useState<string | null>(null);
@@ -147,6 +162,7 @@ export function App() {
   }, []);
 
   const effectiveJsonUrl = treeBlobUrl ?? jsonUrl;
+  const effectiveRulersJsonUrl = rulersBlobUrl ?? (rulersCustomUrl.trim() || publicUrl("rulers.json"));
   const { data, err, loading, reload } = useTreeData(effectiveJsonUrl || null);
 
   const onTreeFileText = useCallback((text: string) => {
@@ -499,10 +515,13 @@ export function App() {
       <header className="hdr">
         <h1>Ancestory</h1>
         <p className="sub">
-          Dual view aligns father’s line and mother’s line by generation for the
-          selected root (e.g. a child). You can also compare two patrilines (two
-          roots). Default root <code>@P1@</code> Erika Fortner; default compare{" "}
-          <code>@P2@</code> Tad Ericson when using two patrilines.
+          Inclusive and honest history for our child and the future of humanity — 2SLGBTQI+ from birth and milestones to now; an evolution.
+        </p>
+        <p
+          className="sub-note"
+          title="Your tree.json must include those xrefs to match the sample, or change root and compare in the controls."
+        >
+          Dual view aligns father’s line and mother’s line by generation from the root you choose, or compares two patrilines from two roots. Sample tree: <code>@P1@</code> Erika Fortner; compare <code>@P2@</code> Tad Ericson.
         </p>
       </header>
 
@@ -515,8 +534,11 @@ export function App() {
         onIngestError={setIngestMsg}
         treeFromFile={Boolean(treeBlobUrl)}
         rulersFromFile={Boolean(rulersBlobUrl)}
+        rulersUrlDisplay={effectiveRulersJsonUrl}
         message={ingestMsg}
       />
+
+      <DataFilesHelp />
 
       {rulersTestPath && (
         <section className="panel rulers-test-page" aria-label="Rulers manual QA">
@@ -527,7 +549,7 @@ export function App() {
             <span className="rulers-test-exit-hint">(returns to the main URL in this session)</span>
           </p>
           <RulersPageTest
-            rulersJsonUrl={rulersBlobUrl ?? publicUrl("rulers.json")}
+            rulersJsonUrl={effectiveRulersJsonUrl}
             onOpenInDual={onOpenInDualFromRulersTest}
           />
         </section>
@@ -535,13 +557,41 @@ export function App() {
 
       {!rulersTestPath && (
       <section className="panel controls">
-        <div className="controls-row">
+        <div className="controls-row controls-row--data-source">
           <label>
+            <span>Tree data source</span>
+            <select
+              className="sel data-source-preset"
+              value={treeSourcePreset}
+              onChange={(e) => {
+                const v = e.target.value as TreeSourcePreset;
+                if (v === "site") {
+                  setTreeSourcePreset("site");
+                  setJsonUrl(publicUrl("tree.json"));
+                  setRulersCustomUrl("");
+                } else if (v === "github-main") {
+                  setTreeSourcePreset("github-main");
+                  setJsonUrl(RAW_GITHUB_TREE_MAIN);
+                  setRulersCustomUrl(RAW_GITHUB_RULERS_MAIN);
+                } else {
+                  setTreeSourcePreset("custom");
+                }
+              }}
+            >
+              <option value="site">This site (bundled tree.json)</option>
+              <option value="github-main">GitHub public/tree.json (main, raw)</option>
+              <option value="custom">Custom tree.json URL</option>
+            </select>
+          </label>
+          <label className="controls-tree-url">
             <span>tree.json URL</span>
             <input
-              className="inp"
+              className="inp mono wide"
               value={jsonUrl}
-              onChange={(e) => setJsonUrl(e.target.value)}
+              onChange={(e) => {
+                setJsonUrl(e.target.value);
+                setTreeSourcePreset("custom");
+              }}
               placeholder={publicUrl("tree.json")}
             />
           </label>
@@ -575,6 +625,20 @@ export function App() {
             </span>
           )}
         </div>
+        <details className="controls-advanced data-source-advanced">
+          <summary>Optional: rulers.json URL</summary>
+          <div className="controls-row">
+            <label className="controls-tree-url">
+              <span>rulers.json fetch URL (blank = bundled path)</span>
+              <input
+                className="inp mono wide"
+                value={rulersCustomUrl}
+                onChange={(e) => setRulersCustomUrl(e.target.value)}
+                placeholder={publicUrl("rulers.json")}
+              />
+            </label>
+          </div>
+        </details>
         {data && (
           <div className="controls-search">
             <label className="controls-search-label">
@@ -1263,7 +1327,7 @@ export function App() {
 
             {tab === "rulers" && (
               <RulersView
-                rulersJsonUrl={rulersBlobUrl ?? publicUrl("rulers.json")}
+                rulersJsonUrl={effectiveRulersJsonUrl}
                 onOpenInDual={(id) => {
                   setRootId(id);
                   setTab("dual");

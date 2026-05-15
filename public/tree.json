@@ -1,0 +1,12 @@
+{
+  "source": "fixture:minimal-tree (for CI / GitHub Pages when no GED export is bundled)",
+  "individuals": {
+    "@P1@": {
+      "n": "Example /Person/",
+      "s": "U",
+      "c": "",
+      "m": []
+    }
+  },
+  "families": {}
+}

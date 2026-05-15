@@ -9,9 +9,12 @@ export function appBaseHref(): string {
   return b.endsWith("/") ? b : `${b}/`;
 }
 
-/** Files from `public/` (fetch, img src) — prefixes Vite `base` for GitHub Pages etc. */
+/** Files from `public/` (fetch, img src). Uses Vite `import.meta.env.BASE_URL` (`/` in dev, `/ancestory/` on Pages). */
 export function publicUrl(path: string): string {
-  return `${appBaseHref()}${path.replace(/^\//, "")}`;
+  const cleanPath = path.replace(/^\//, "");
+  const base = import.meta.env.BASE_URL;
+  const baseWithSlash = base.endsWith("/") ? base : `${base}/`;
+  return `${baseWithSlash}${cleanPath}`;
 }
 
 /** Leave `/…/rulers-test` and return to the app root without a full reload. */

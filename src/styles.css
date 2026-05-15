@@ -43,6 +43,13 @@ body {
   font-size: 0.9rem;
 }
 
+.sub-note {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -251,6 +258,47 @@ body {
   flex-wrap: wrap;
   gap: 0.75rem 1.25rem;
   align-items: flex-end;
+}
+
+.controls-row--data-source .controls-tree-url {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.controls-row--data-source .data-source-preset {
+  min-width: 12rem;
+}
+
+.controls-advanced.data-source-advanced {
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.controls-advanced.data-source-advanced summary {
+  cursor: pointer;
+  color: var(--text);
+}
+
+.controls-advanced.data-source-advanced .controls-row {
+  margin-top: 0.5rem;
+}
+
+.data-files-help {
+  padding: 0.65rem 0.85rem;
+}
+
+.data-files-help .h3 {
+  margin: 0 0 0.35rem;
+}
+
+.data-files-help-lead,
+.data-files-help-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .controls-search {

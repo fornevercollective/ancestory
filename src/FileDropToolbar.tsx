@@ -32,6 +32,8 @@ type Props = {
   onIngestError: (msg: string) => void;
   treeFromFile: boolean;
   rulersFromFile: boolean;
+  /** Resolved rulers fetch URL (bundled, override, or blob). */
+  rulersUrlDisplay?: string;
   message: string | null;
 };
 
@@ -42,6 +44,7 @@ export function FileDropToolbar({
   onIngestError,
   treeFromFile,
   rulersFromFile,
+  rulersUrlDisplay,
   message,
 }: Props) {
   const baseId = useId();
@@ -180,7 +183,7 @@ export function FileDropToolbar({
       <p className="ingest-status muted">
         Tree: {treeFromFile ? <strong>local file</strong> : <span>URL field below</span>}
         {" · "}
-        Rulers: {rulersFromFile ? <strong>local file</strong> : <span>{publicUrl("rulers.json")}</span>}
+        Rulers: {rulersFromFile ? <strong>local file</strong> : <span>{rulersUrlDisplay ?? publicUrl("rulers.json")}</span>}
       </p>
     </section>
   );
