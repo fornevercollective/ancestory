@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { publicUrl } from "./rulersTestPath";
 import { LineageFlowTree } from "./LineageFlowTree";
 import { RulersMap } from "./RulersMap";
 import { timeBandClass } from "./timeBands";
@@ -103,11 +104,11 @@ function Bar({ label, value, max }: { label: string; value: number; max: number 
 type Props = {
   /** Jump to Dual lines with this person as root */
   onOpenInDual?: (id: string) => void;
-  /** Default `/rulers.json`; pass a blob URL after dropping rulers.json in App */
+  /** Default bundled rulers JSON; pass a blob URL after dropping rulers.json in App */
   rulersJsonUrl?: string;
 };
 
-export function RulersView({ onOpenInDual, rulersJsonUrl = "/rulers.json" }: Props) {
+export function RulersView({ onOpenInDual, rulersJsonUrl = publicUrl("rulers.json") }: Props) {
   const [data, setData] = useState<RulersPayload | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [country, setCountry] = useState<string>("__all__");

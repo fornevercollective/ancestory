@@ -2766,6 +2766,35 @@ button.lineage-flow-node:focus-visible {
   word-break: break-word;
 }
 
+.rulers-test-page {
+  margin-top: 0.35rem;
+}
+
+.rulers-test-exit-row {
+  margin: 0 0 0.75rem;
+}
+
+.rulers-test-exit-hint {
+  font-size: 0.78rem;
+}
+
+.rulers-test-root {
+  margin-top: 0.25rem;
+}
+
+.rulers-test-banner {
+  background: #5c2a2a;
+  color: #fff;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-bottom: 0.65rem;
+  border: 1px solid #8a3d3d;
+}
+
 .rulers-hint,
 .rulers-count {
   font-size: 0.78rem;

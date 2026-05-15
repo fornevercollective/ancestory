@@ -19,7 +19,9 @@ import {
   mapScopeSupportsPartnersToggle,
   type MapScope,
 } from "./MapView";
+import { RulersPageTest } from "./RulersPageTest";
 import { RulersView } from "./RulersView";
+import { leaveRulersTestPath, pathnameIsRulersTest, publicUrl } from "./rulersTestPath";
 import { MediaThumb } from "./MediaThumb";
 import { birthYear, rowRepresentativeYear, timeBandClass } from "./timeBands";
 import { formatBloodLabel, type ABO, type Rh } from "./bloodStorage";
@@ -34,7 +36,8 @@ import {
 } from "./trace";
 
 const DEFAULT_ROOT = "@P1@";
-const DEFAULT_JSON = "/tree.json";
+/** Default tree when no blob override — must include Vite `base` on GH Pages (e.g. `/ancestory/tree.json`). */
+const DEFAULT_JSON = publicUrl("tree.json");
 
 function useTreeData(url: string | null) {
   const [data, setData] = useState<TreePayload | null>(null);
@@ -92,6 +95,9 @@ export function App() {
   const [compareRootId, setCompareRootId] = useState("@P2@");
   const [dualMode, setDualMode] = useState<DualMode>("pat-mat");
   const [tab, setTab] = useState<Tab>("dual");
+  const [rulersTestPath, setRulersTestPath] = useState(
+    () => typeof window !== "undefined" && pathnameIsRulersTest(window.location.pathname)
+  );
   const [nameQuery, setNameQuery] = useState("");
   const [maxGenerations, setMaxGenerations] = useState(100);
   const [mapScope, setMapScope] = useState<MapScope>("root-life");
@@ -132,6 +138,12 @@ export function App() {
       if (tb?.startsWith("blob:")) URL.revokeObjectURL(tb);
       if (rb?.startsWith("blob:")) URL.revokeObjectURL(rb);
     };
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setRulersTestPath(pathnameIsRulersTest(window.location.pathname));
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
   }, []);
 
   const effectiveJsonUrl = treeBlobUrl ?? jsonUrl;
@@ -181,6 +193,12 @@ export function App() {
       return null;
     });
     setIngestMsg(null);
+  }, []);
+
+  const onOpenInDualFromRulersTest = useCallback((id: string) => {
+    setRootId(id);
+    setTab("dual");
+    leaveRulersTestPath();
   }, []);
   const {
     bloodMap,
@@ -488,7 +506,7 @@ export function App() {
         </p>
       </header>
 
-      <OsintResearchPanel />
+      {!rulersTestPath && <OsintResearchPanel />}
 
       <FileDropToolbar
         onTreeText={onTreeFileText}
@@ -500,6 +518,22 @@ export function App() {
         message={ingestMsg}
       />
 
+      {rulersTestPath && (
+        <section className="panel rulers-test-page" aria-label="Rulers manual QA">
+          <p className="rulers-test-exit-row muted">
+            <button type="button" className="linkbtn" onClick={() => leaveRulersTestPath()}>
+              Open full Ancestory app
+            </button>{" "}
+            <span className="rulers-test-exit-hint">(returns to the main URL in this session)</span>
+          </p>
+          <RulersPageTest
+            rulersJsonUrl={rulersBlobUrl ?? publicUrl("rulers.json")}
+            onOpenInDual={onOpenInDualFromRulersTest}
+          />
+        </section>
+      )}
+
+      {!rulersTestPath && (
       <section className="panel controls">
         <div className="controls-row">
           <label>
@@ -508,7 +542,7 @@ export function App() {
               className="inp"
               value={jsonUrl}
               onChange={(e) => setJsonUrl(e.target.value)}
-              placeholder="/tree.json"
+              placeholder={publicUrl("tree.json")}
             />
           </label>
           <label>
@@ -589,8 +623,9 @@ export function App() {
           </div>
         )}
       </section>
+      )}
 
-      {err && (
+      {err && !rulersTestPath && (
         <section className="panel err">
           <strong>Could not load JSON.</strong> {err}{" "}
           <span className="hint">
@@ -604,7 +639,7 @@ export function App() {
         </section>
       )}
 
-      {data && (
+      {data && !rulersTestPath && (
         <>
           <nav className="tabs">
             {(
@@ -1228,7 +1263,7 @@ export function App() {
 
             {tab === "rulers" && (
               <RulersView
-                rulersJsonUrl={rulersBlobUrl ?? "/rulers.json"}
+                rulersJsonUrl={rulersBlobUrl ?? publicUrl("rulers.json")}
                 onOpenInDual={(id) => {
                   setRootId(id);
                   setTab("dual");
@@ -1358,6 +1393,7 @@ export function App() {
       )}
 
       {data &&
+        !rulersTestPath &&
         dualMapFull &&
         typeof document !== "undefined" &&
         createPortal(

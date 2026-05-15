@@ -1,4 +1,5 @@
 import { useCallback, useId, useState } from "react";
+import { publicUrl } from "./rulersTestPath";
 
 export type SniffedKind = "tree" | "rulers";
 
@@ -179,7 +180,7 @@ export function FileDropToolbar({
       <p className="ingest-status muted">
         Tree: {treeFromFile ? <strong>local file</strong> : <span>URL field below</span>}
         {" · "}
-        Rulers: {rulersFromFile ? <strong>local file</strong> : <span>/rulers.json</span>}
+        Rulers: {rulersFromFile ? <strong>local file</strong> : <span>{publicUrl("rulers.json")}</span>}
       </p>
     </section>
   );
