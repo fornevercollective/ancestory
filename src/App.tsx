@@ -8,6 +8,14 @@ import { DualFanChart } from "./DualFanChart";
 import { ExternalDnaToolsPanel } from "./ExternalDnaToolsPanel";
 import { FileDropToolbar } from "./FileDropToolbar";
 import { OsintResearchPanel } from "./OsintResearchPanel";
+import { MobileHomeShell } from "./MobileHomeShell";
+import { WorldDirectoryPage } from "./WorldDirectoryPage";
+import {
+  genreSortWeight,
+  identitySignal,
+  personMatchesGenre,
+  type IdentityGenre,
+} from "./identityFilter";
 import { LineageFlowTree } from "./LineageFlowTree";
 import { GeneticPartnerOverlayPanel } from "./GeneticPartnerOverlayPanel";
 import { PhenotypeSelects } from "./PhenotypeSelects";
@@ -79,6 +87,7 @@ function useTreeData(url: string | null) {
 }
 
 type Tab =
+  | "home"
   | "dual"
   | "patriline"
   | "matriline"
@@ -87,7 +96,8 @@ type Tab =
   | "by-gen"
   | "search"
   | "map"
-  | "rulers";
+  | "rulers"
+  | "directory";
 
 type DualMode = "pat-mat" | "pat-pat" | "quad";
 
@@ -109,11 +119,12 @@ export function App() {
   const [rootId, setRootId] = useState(DEFAULT_ROOT);
   const [compareRootId, setCompareRootId] = useState("@P2@");
   const [dualMode, setDualMode] = useState<DualMode>("pat-mat");
-  const [tab, setTab] = useState<Tab>("dual");
+  const [tab, setTab] = useState<Tab>("home");
   const [rulersTestPath, setRulersTestPath] = useState(
     () => typeof window !== "undefined" && pathnameIsRulersTest(window.location.pathname)
   );
   const [nameQuery, setNameQuery] = useState("");
+  const [identityGenre, setIdentityGenre] = useState<IdentityGenre>("all");
   const [maxGenerations, setMaxGenerations] = useState(100);
   const [mapScope, setMapScope] = useState<MapScope>("root-life");
   const [mapConnectLine, setMapConnectLine] = useState(true);
@@ -466,17 +477,25 @@ export function App() {
 
   const searchHits = useMemo(() => {
     const q = nameQuery.trim().toLowerCase();
-    if (!q || !data) return [] as { id: string; name: string }[];
-    const hits: { id: string; name: string }[] = [];
+    if (!data) return [] as { id: string; name: string }[];
+    const filterActive = identityGenre !== "all";
+    if (!q && !filterActive) return [] as { id: string; name: string }[];
+    const hits: { id: string; name: string; weight: number }[] = [];
     for (const id of Object.keys(indi)) {
       const name = formatName(id, indi);
       const nl = name.toLowerCase();
       const idl = id.toLowerCase();
-      if (nl.includes(q) || idl.includes(q)) hits.push({ id, name });
+      if (q && !nl.includes(q) && !idl.includes(q)) continue;
+      const sig = identitySignal(id, indi, traitMap);
+      if (filterActive && !personMatchesGenre(sig, identityGenre)) continue;
+      hits.push({ id, name, weight: genreSortWeight(sig, identityGenre) });
     }
-    hits.sort((a, b) => a.name.localeCompare(b.name));
-    return hits.slice(0, 400);
-  }, [nameQuery, data, indi]);
+    hits.sort((a, b) => {
+      if (a.weight !== b.weight) return a.weight - b.weight;
+      return a.name.localeCompare(b.name);
+    });
+    return hits.slice(0, 400).map(({ id, name }) => ({ id, name }));
+  }, [nameQuery, data, indi, identityGenre, traitMap]);
 
   const maleAncFlowIds = useMemo(() => {
     return [...maleAnc].sort((a, b) => {
@@ -511,7 +530,7 @@ export function App() {
   const searchHitIds = useMemo(() => searchHits.map((h) => h.id), [searchHits]);
 
   return (
-    <div className="app app-wide">
+    <div className={`app app-wide${tab === "home" ? " app--mobile-home" : ""}`}>
       <header className="hdr">
         <h1>Ancestory</h1>
         <p className="sub">
@@ -525,18 +544,20 @@ export function App() {
         </p>
       </header>
 
-      {!rulersTestPath && <OsintResearchPanel />}
+      {!rulersTestPath && tab !== "home" && <OsintResearchPanel />}
 
-      <FileDropToolbar
-        onTreeText={onTreeFileText}
-        onRulersText={onRulersFileText}
-        onClear={onClearIngestFiles}
-        onIngestError={setIngestMsg}
-        treeFromFile={Boolean(treeBlobUrl)}
-        rulersFromFile={Boolean(rulersBlobUrl)}
-        rulersUrlDisplay={effectiveRulersJsonUrl}
-        message={ingestMsg}
-      />
+      {tab !== "home" && (
+        <FileDropToolbar
+          onTreeText={onTreeFileText}
+          onRulersText={onRulersFileText}
+          onClear={onClearIngestFiles}
+          onIngestError={setIngestMsg}
+          treeFromFile={Boolean(treeBlobUrl)}
+          rulersFromFile={Boolean(rulersBlobUrl)}
+          rulersUrlDisplay={effectiveRulersJsonUrl}
+          message={ingestMsg}
+        />
+      )}
 
       <DataFilesHelp />
 
@@ -708,6 +729,7 @@ export function App() {
           <nav className="tabs">
             {(
               [
+                ["home", "Home"],
                 ["dual", "Dual lines"],
                 ["patriline", "Patriline"],
                 ["matriline", "Matriline"],
@@ -716,6 +738,7 @@ export function App() {
                 ["by-gen", "By generation"],
                 ["map", "Map / path"],
                 ["rulers", "Rulers & realms"],
+                ["directory", "World directory"],
                 ["search", "Search / set root"],
               ] as const
             ).map(([k, label]) => (
@@ -732,6 +755,7 @@ export function App() {
 
           <section className="panel">
             <h2 className="h2">
+              {tab === "home" && "Home — lines, OSINT, map"}
               {tab === "dual" && "Dual streams (side by side)"}
               {tab === "patriline" && "Patriline (father’s line)"}
               {tab === "matriline" && "Matriline (mother’s line)"}
@@ -740,6 +764,7 @@ export function App() {
               {tab === "by-gen" && "Ancestors grouped by generation"}
               {tab === "map" && "Map — birth / death / life path (full page)"}
               {tab === "rulers" && "Rulers, titles & realm (heuristic export)"}
+              {tab === "directory" && "World name directory — etymology, tribes, hominins"}
               {tab === "search" && "Search by name"}
             </h2>
             <p className="rootcap">
@@ -751,6 +776,50 @@ export function App() {
                 </>
               )}
             </p>
+
+            {tab === "home" && (
+              <MobileHomeShell
+                rootId={rootId}
+                rootLabel={rootLabel}
+                compareLabel={compareLabel}
+                dualMode={dualMode}
+                dualRows={dualRows}
+                vizColumnTitles={vizColumnTitles}
+                individuals={indi}
+                families={fam}
+                nameQuery={nameQuery}
+                onNameQueryChange={setNameQuery}
+                partnerOverlay={partnerOverlay}
+                patIds={pat}
+                matIds={mat}
+                mapScope={mapScope}
+                onMapScopeChange={setMapScope}
+                mapConnectLine={mapConnectLine}
+                onMapConnectLineChange={setMapConnectLine}
+                mapIncludePartners={mapIncludePartners}
+                onMapIncludePartnersChange={setMapIncludePartners}
+                onSetRoot={setRootId}
+                onSetCompare={(id) => {
+                  setCompareRootId(id);
+                  setDualMode("pat-pat");
+                }}
+                onDualModeChange={setDualMode}
+                sourceLine={data.source}
+                searchHits={searchHits}
+                onTreeText={onTreeFileText}
+                onRulersText={onRulersFileText}
+                onClearIngest={onClearIngestFiles}
+                onIngestError={setIngestMsg}
+                treeFromFile={Boolean(treeBlobUrl)}
+                rulersFromFile={Boolean(rulersBlobUrl)}
+                ingestMessage={ingestMsg}
+                bloodMap={bloodMap}
+                faceMap={faceMap}
+                traitMap={traitMap}
+                identityGenre={identityGenre}
+                onIdentityGenreChange={setIdentityGenre}
+              />
+            )}
 
             {tab === "dual" && (
               <>
@@ -1335,6 +1404,10 @@ export function App() {
               />
             )}
 
+            {tab === "directory" && (
+              <WorldDirectoryPage />
+            )}
+
             {tab === "map" && (
               <div className="map-tab">
                 <p className="map-tab-lead">
@@ -1452,7 +1525,7 @@ export function App() {
             )}
           </section>
 
-          <footer className="ftr mono">{data.source}</footer>
+          {tab !== "home" && <footer className="ftr mono">{data.source}</footer>}
         </>
       )}
 

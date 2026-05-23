@@ -1,29 +1,9 @@
-import { useCallback, useId, useState } from "react";
+import { useId } from "react";
 import { publicUrl } from "./rulersTestPath";
+import { useJsonIngest } from "./useJsonIngest";
 
-export type SniffedKind = "tree" | "rulers";
-
-export function sniffJsonKind(text: string): SniffedKind | null {
-  try {
-    const o = JSON.parse(text) as Record<string, unknown>;
-    if (o.individuals && o.families && typeof o.individuals === "object" && typeof o.families === "object") {
-      return "tree";
-    }
-    if (Array.isArray(o.people)) {
-      return "rulers";
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function kindFromFilename(name: string): SniffedKind | null {
-  const n = name.toLowerCase();
-  if (n.includes("ruler")) return "rulers";
-  if (n.includes("tree")) return "tree";
-  return null;
-}
+export type { SniffedKind } from "./jsonIngest";
+export { sniffJsonKind, kindFromFilename } from "./jsonIngest";
 
 type Props = {
   onTreeText: (text: string) => void;
@@ -48,49 +28,16 @@ export function FileDropToolbar({
   message,
 }: Props) {
   const baseId = useId();
-  const [pasteDraft, setPasteDraft] = useState("");
-  const [dragOver, setDragOver] = useState<"tree" | "rulers" | null>(null);
-
-  const handleFile = useCallback(
-    async (file: File, forced?: SniffedKind) => {
-      const text = await file.text();
-      let kind = forced ?? kindFromFilename(file.name) ?? sniffJsonKind(text);
-      if (!kind) {
-        onIngestError("Could not tell tree vs rulers — use tree.json / rulers.json names or paste JSON.");
-        return;
-      }
-      if (kind === "tree") onTreeText(text);
-      else onRulersText(text);
-    },
-    [onTreeText, onRulersText, onIngestError]
-  );
-
-  const onDropZone =
-    (kind: SniffedKind) =>
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragOver(null);
-      const f = e.dataTransfer.files?.[0];
-      if (f) await handleFile(f, kind);
-    };
-
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
-  };
-
-  const applyPaste = useCallback(() => {
-    const text = pasteDraft.trim();
-    const kind = sniffJsonKind(text);
-    if (!kind) {
-      onIngestError("Paste does not look like tree.json or rulers.json.");
-      return;
-    }
-    if (kind === "tree") onTreeText(text);
-    else onRulersText(text);
-    setPasteDraft("");
-  }, [pasteDraft, onTreeText, onRulersText, onIngestError]);
+  const {
+    pasteDraft,
+    setPasteDraft,
+    dragOver,
+    setDragOver,
+    handleFile,
+    onDropZone,
+    onDragOver,
+    applyPaste,
+  } = useJsonIngest({ onTreeText, onRulersText, onIngestError });
 
   const busy = treeFromFile || rulersFromFile;
 

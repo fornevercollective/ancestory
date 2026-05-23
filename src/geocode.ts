@@ -94,14 +94,36 @@ export async function geocodePlacesSequential(
   places: string[],
   signal?: AbortSignal
 ): Promise<(LatLng | null)[]> {
+  return geocodePlacesContrail(places, signal);
+}
+
+export type ContrailProgress = {
+  index: number;
+  total: number;
+  coord: LatLng | null;
+};
+
+/**
+ * Contrail-style lazy geocode (kbatch flowPath): one segment at a time in order.
+ * Cached places resolve immediately; each step can extend the map polyline before the next fetch.
+ */
+export async function geocodePlacesContrail(
+  places: string[],
+  signal?: AbortSignal,
+  onStep?: (progress: ContrailProgress) => void
+): Promise<(LatLng | null)[]> {
   const out: (LatLng | null)[] = [];
-  for (const p of places) {
+  const total = places.length;
+  for (let i = 0; i < places.length; i++) {
     if (signal?.aborted) break;
+    let coord: LatLng | null = null;
     try {
-      out.push(await geocodePlace(p, signal));
+      coord = await geocodePlace(places[i], signal);
     } catch {
-      out.push(null);
+      coord = null;
     }
+    out.push(coord);
+    onStep?.({ index: i, total, coord });
   }
   return out;
 }

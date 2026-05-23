@@ -1,7 +1,7 @@
 import L from "leaflet";
 import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
-import { geocodePlacesSequential } from "./geocode";
+import { geocodePlacesContrail } from "./geocode";
 import { MapGeocodeOverlay, useGeocodeElapsedMs } from "./MapGeocodeOverlay";
 import { localPartnerMeta, type PartnerOverlayMap } from "./partnerOverlayStorage";
 import type { FamRec, IndiRec } from "./types";
@@ -63,6 +63,8 @@ type Props = {
   /** Browser-only partner xrefs per person (any count); merged after FAMS + GED `gp`. */
   partnerOverlay?: PartnerOverlayMap;
   embed?: boolean;
+  /** Full viewport map (mobile page) — enables wheel zoom and flex height. */
+  fullPage?: boolean;
   showFoot?: boolean;
   /** When true and scope is pat/mat *births*, geocode the opposite stream and draw a second polyline. */
   patMatBirthDualLines?: boolean;
@@ -173,7 +175,7 @@ function oppositePatMatBirthScope(scope: MapScope): MapScope | null {
 
 function footerForScope(scope: MapScope, includePartners: boolean): string {
   if (scope === "root-life" || scope === "pat-travel" || scope === "mat-travel") {
-    return "Life / travel uses BIRT, RESI, and DEAT places in GED order — not verified migration.";
+    return "Life / travel uses BIRT, RESI, and DEAT in GED order; the line extends waypoint-by-waypoint as geocoding completes.";
   }
   if (scope === "root-birth-context") {
     return "BIRT.TYPE (when exported) labels birth locale — hospital/church/home depends on how your GED encodes it.";
@@ -189,7 +191,7 @@ function footerForScope(scope: MapScope, includePartners: boolean): string {
       includePartners && mapScopeSupportsPartnersToggle(scope)
         ? " Pink markers: FAMS + GED NOTE partners + optional browser partner list (any count). "
         : "";
-    return `Patriline / matriline maps follow ancestor list order; lines are not genetic routes.${sp}`;
+    return `Patriline / matriline maps follow root → furthest ancestor order; the path draws segment-by-segment as each place resolves (cached places are instant).${sp}`;
   }
   return "Dark basemap (CARTO + OSM). Nominatim (~1 request/sec). Coordinates are approximate.";
 }
@@ -205,6 +207,7 @@ export function MapView({
   includePartners = false,
   partnerOverlay,
   embed = false,
+  fullPage = false,
   showFoot = true,
   patMatBirthDualLines = false,
   streamAccent = "pat",
@@ -249,24 +252,28 @@ export function MapView({
           setStatus(statusMsg);
           return;
         }
-        setStatus(`Geocoding ${places.length} place(s) (Nominatim ~1/s)…`);
-        const coords = await geocodePlacesSequential(places, ac.signal);
-        if (cancelled) return;
         const markers: typeof pts = [];
         const ok: [number, number][] = [];
-        places.forEach((_pl, i) => {
-          const c = coords[i];
-          if (!c) return;
-          markers.push({
-            label: labels[i] ?? _pl,
-            lat: c.lat,
-            lng: c.lng,
-            kind: kinds[i] ?? "m",
-          });
-          ok.push([c.lat, c.lng]);
+        const flush = () => {
+          if (cancelled) return;
+          setPts([...markers]);
+          setLine(connectLine && ok.length >= 2 ? [...ok] : []);
+        };
+        await geocodePlacesContrail(places, ac.signal, ({ index, total, coord }) => {
+          if (cancelled) return;
+          setStatus(`Plotting waypoint ${index + 1}/${total} (start → line end)…`);
+          if (coord) {
+            markers.push({
+              label: labels[index] ?? places[index],
+              lat: coord.lat,
+              lng: coord.lng,
+              kind: kinds[index] ?? "m",
+            });
+            ok.push([coord.lat, coord.lng]);
+          }
+          flush();
         });
-        setPts(markers);
-        setLine(connectLine && ok.length >= 2 ? ok : []);
+        if (cancelled) return;
         setStatus(markers.length ? doneMsg(markers.length) : "No coordinates returned.");
       };
 
@@ -279,30 +286,37 @@ export function MapView({
           setStatus("No birth, death, or residence places in the export for this person.");
           return;
         }
-        setStatus(`Geocoding ${places.length} waypoint(s) (Nominatim ~1/s)…`);
-        const coords = await geocodePlacesSequential(places, ac.signal);
-        if (cancelled) return;
         const markers: typeof pts = [];
         const ok: [number, number][] = [];
-        places.forEach((pl, i) => {
-          const c = coords[i];
-          if (!c) return;
+        const flushLife = () => {
+          if (cancelled) return;
+          setPts([...markers]);
+          setLine(connectLine && ok.length >= 2 ? [...ok] : []);
+        };
+        await geocodePlacesContrail(places, ac.signal, ({ index, total, coord }) => {
+          if (cancelled) return;
+          setStatus(`Life path waypoint ${index + 1}/${total} (birth → death)…`);
+          if (!coord) {
+            flushLife();
+            return;
+          }
+          const pl = places[index];
           const role =
-            i === 0 ? "Birth / start" : i === places.length - 1 ? "Death / end" : "Residence";
-          const kind: Mk = i === 0 ? "b" : i === places.length - 1 ? "d" : "m";
+            index === 0 ? "Birth / start" : index === places.length - 1 ? "Death / end" : "Residence";
+          const kind: Mk = index === 0 ? "b" : index === places.length - 1 ? "d" : "m";
           markers.push({
             label: `${role}: ${pl}`,
-            lat: c.lat,
-            lng: c.lng,
+            lat: coord.lat,
+            lng: coord.lng,
             kind,
           });
-          ok.push([c.lat, c.lng]);
+          ok.push([coord.lat, coord.lng]);
+          flushLife();
         });
-        setPts(markers);
-        setLine(connectLine && ok.length >= 2 ? ok : []);
+        if (cancelled) return;
         setStatus(
           ok.length
-            ? `Life path: ${ok.length} point(s). ${connectLine && ok.length >= 2 ? "Line follows GED place order." : 'Use "Connect line" to draw between waypoints.'}`
+            ? `Life path: ${ok.length} point(s). ${connectLine && ok.length >= 2 ? "Line draws in GED order as each place resolves." : 'Use "Connect line" to draw between waypoints.'}`
             : "No coordinates returned (try different spelling in GED)."
         );
         return;
@@ -426,16 +440,14 @@ export function MapView({
                 if (bp) oppPlaces.push(bp);
               }
               if (oppPlaces.length >= 2) {
-                setStatus(`Geocoding opposite pat/mat birth line (${oppPlaces.length} places, ~1/s)…`);
-                const coordsB = await geocodePlacesSequential(oppPlaces, ac.signal);
-                if (cancelled) return;
                 const okB: [number, number][] = [];
-                oppPlaces.forEach((_pl, i) => {
-                  const c = coordsB[i];
-                  if (!c) return;
-                  okB.push([c.lat, c.lng]);
+                await geocodePlacesContrail(oppPlaces, ac.signal, ({ index, total, coord }) => {
+                  if (cancelled) return;
+                  setStatus(`Opposite line waypoint ${index + 1}/${total} (start → line end)…`);
+                  if (coord) okB.push([coord.lat, coord.lng]);
+                  setLineB(connectLine && okB.length >= 2 ? [...okB] : []);
                 });
-                setLineB(okB.length >= 2 ? okB : []);
+                if (cancelled) return;
               } else {
                 setLineB([]);
               }
@@ -611,7 +623,8 @@ export function MapView({
     if (lineB.length >= 2) return lineB;
     return fromPts;
   })();
-  const mapRevision = `${embed ? "e" : "p"}|${rootId}|${scope}|${connectLine}|${partnersOn ? "1" : "0"}|${partnerSig}|${pts.length}|${line.length}|${lineB.length}|${patMatBirthDualLines ? "1" : "0"}|${patIds.length}|${matIds.length}`;
+  const mapSessionKey = `${embed ? "e" : "p"}|${rootId}|${scope}|${connectLine}|${partnersOn ? "1" : "0"}|${partnerSig}|${patMatBirthDualLines ? "1" : "0"}|${streamAccent}|${patIds.length}|${matIds.length}`;
+  const mapFitRevision = `${mapSessionKey}|${pts.length}|${line.length}|${lineB.length}`;
 
   const dualBirthLines = lineB.length >= 2;
   const primaryIsPat =
@@ -621,20 +634,20 @@ export function MapView({
 
   return (
     <div
-      className={`map-shell map-shell--dark${embed ? " map-shell--embed" : ""}`}
+      className={`map-shell map-shell--dark${embed ? " map-shell--embed" : ""}${fullPage ? " map-shell--fullpage" : ""}`}
       aria-busy={geocoding}
     >
       <p className="map-meta">{status}</p>
-      <div className={`map-canvas${embed ? " map-canvas--embed" : ""}`}>
+      <div className={`map-canvas${embed ? " map-canvas--embed" : ""}${fullPage ? " map-canvas--fullpage" : ""}`}>
         <MapGeocodeOverlay active={geocoding} elapsedMs={geocodeElapsedMs} detail={status} />
         <MapContainer
-          key={mapRevision}
+          key={mapSessionKey}
           center={center}
           zoom={4}
-          scrollWheelZoom={false}
+          scrollWheelZoom={fullPage}
           className="map-leaflet"
         >
-          <MapResize revision={mapRevision} />
+          <MapResize revision={mapFitRevision} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
