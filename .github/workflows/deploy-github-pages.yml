@@ -21,9 +21,14 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
           cache: npm
@@ -31,18 +36,19 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - uses: actions/upload-pages-artifact@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      # Note: Do not reference step outputs here — they are not available
+      # at job definition time when using a separate deploy job.
     runs-on: ubuntu-latest
     needs: build
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v5
