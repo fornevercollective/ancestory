@@ -9,3 +9,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>
 );
+
+// Register service worker for PWA (offline shell + faster repeat visits)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        console.log("Ancestory SW registered", reg.scope);
+      })
+      .catch((err) => {
+        console.warn("SW registration failed (PWA offline features limited):", err);
+      });
+  });
+}

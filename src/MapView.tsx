@@ -193,7 +193,7 @@ function footerForScope(scope: MapScope, includePartners: boolean): string {
         : "";
     return `Patriline / matriline maps follow root → furthest ancestor order; the path draws segment-by-segment as each place resolves (cached places are instant).${sp}`;
   }
-  return "Dark basemap (CARTO + OSM). Nominatim (~1 request/sec). Coordinates are approximate.";
+  return "Dark basemap (CARTO + OSM). Persistent Place Ledger + Nominatim. Many places now resolve instantly across sessions.";
 }
 
 export function MapView({

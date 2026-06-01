@@ -119,6 +119,145 @@ async function loadWikidata(url: string, signal?: AbortSignal): Promise<OsintInt
   };
 }
 
+/**
+ * Extracts genealogy-relevant structured data from a Wikidata entity.
+ * This is the core of "scooping up history".
+ */
+export type WikidataGenealogyExtract = {
+  label?: string;
+  birthDate?: string;
+  deathDate?: string;
+  birthPlace?: string;
+  deathPlace?: string;
+  burialPlace?: string;
+  occupations?: string[];
+  sex?: string;
+  rawClaimsSample?: Record<string, unknown>;
+};
+
+export async function extractWikidataGenealogy(
+  urlOrId: string,
+  signal?: AbortSignal
+): Promise<WikidataGenealogyExtract | null> {
+  const id = wikidataIdFromUrl(urlOrId) ?? (urlOrId.match(/^Q\d+$/i) ? urlOrId.toUpperCase() : null);
+  if (!id) return null;
+
+  const r = await corsFetch(
+    `https://www.wikidata.org/wiki/Special:EntityData/${id}.json`,
+    undefined,
+    signal
+  );
+  if (!r.ok) return null;
+
+  const d = (await r.json()) as any;
+  const ent = d.entities?.[id];
+  if (!ent) return null;
+
+  const getClaimValue = (prop: string): any => {
+    const claims = ent.claims?.[prop];
+    if (!claims?.[0]?.mainsnak?.datavalue?.value) return null;
+    const v = claims[0].mainsnak.datavalue.value;
+    if (typeof v === "string") return v;
+    if (v.time) return v.time; // P569/P570 style
+    if (v.id) return v.id;     // reference to another item
+    if (v.text) return v.text;
+    return v;
+  };
+
+  const getLabel = (prop: string): string | undefined => {
+    const val = getClaimValue(prop);
+    // For place-like props we only have Q-ids here; real labels would need another call.
+    // For MVP we return the raw value or Q-id and let the UI show it.
+    return val ? String(val) : undefined;
+  };
+
+  const occuClaims = ent.claims?.P106 || [];
+  const occupations = occuClaims
+    .map((c: any) => c?.mainsnak?.datavalue?.value?.id)
+    .filter(Boolean)
+    .slice(0, 6);
+
+  return {
+    label: ent.labels?.en?.value,
+    birthDate: getLabel("P569"),
+    deathDate: getLabel("P570"),
+    birthPlace: getLabel("P19"),
+    deathPlace: getLabel("P20"),
+    burialPlace: getLabel("P119"),
+    occupations,
+    sex: getLabel("P21"),
+    rawClaimsSample: Object.fromEntries(
+      Object.entries(ent.claims || {}).slice(0, 15)
+    ),
+  };
+}
+
+/** Very lightweight Wikipedia infobox extractor for common genealogy fields. */
+export async function extractWikipediaInfobox(
+  url: string,
+  signal?: AbortSignal
+): Promise<Partial<WikidataGenealogyExtract> | null> {
+  try {
+    const parsed = wikiTitleFromUrl(url);
+    if (!parsed) return null;
+
+    const api =
+      `https://${parsed.host}/w/api.php?action=parse&page=${encodeURIComponent(parsed.title)}` +
+      `&prop=wikitext&formatversion=2&format=json&origin=*`;
+
+    const r = await corsFetch(api, undefined, signal);
+    if (!r.ok) return null;
+
+    const d = (await r.json()) as { parse?: { wikitext?: string } };
+    const wikitext = d.parse?.wikitext || "";
+
+    // Naive infobox scraping (good enough for many genealogy pages)
+    const get = (field: string) => {
+      const re = new RegExp(`\\|\\s*${field}\\s*=\\s*([^\\n|]+)`, "i");
+      const m = wikitext.match(re);
+      return m ? m[1].trim().replace(/\[\[|\]\]/g, "") : undefined;
+    };
+
+    return {
+      label: parsed.title,
+      birthDate: get("birth_date") || get("born"),
+      deathDate: get("death_date") || get("died"),
+      birthPlace: get("birth_place"),
+      deathPlace: get("death_place"),
+    } as any; // extra notes allowed downstream
+  } catch {
+    return null;
+  }
+}
+
+/** Basic Find a Grave memorial page extractor (birth/death + cemetery). */
+export async function extractFindAGrave(
+  url: string,
+  signal?: AbortSignal
+): Promise<Partial<WikidataGenealogyExtract> | null> {
+  try {
+    const r = await corsFetch(url, undefined, signal);
+    if (!r.ok) return null;
+    const html = await r.text();
+
+    const get = (re: RegExp) => {
+      const m = html.match(re);
+      return m ? m[1].replace(/<[^>]+>/g, "").trim() : undefined;
+    };
+
+    return {
+      label: get(/<h1[^>]*>([^<]+)<\/h1>/i) || "Find a Grave memorial",
+      birthDate: get(/Born[^<]*<[^>]*>([^<]+)<\/[^>]*>/i) || get(/b\.\s*(\d{4})/i),
+      deathDate: get(/Died[^<]*<[^>]*>([^<]+)<\/[^>]*>/i) || get(/d\.\s*(\d{4})/i),
+      birthPlace: get(/Born[^<]*in\s+([^<]+)/i),
+      deathPlace: get(/Died[^<]*in\s+([^<]+)/i),
+      burp: get(/Burial[^<]*<[^>]*>([^<]+)<\/[^>]*>/i) || get(/Cemetery[^<]*>([^<]+)</i),
+    } as any;
+  } catch {
+    return null;
+  }
+}
+
 async function loadOpenLibraryWork(url: string, signal?: AbortSignal): Promise<OsintInternalPayload | null> {
   try {
     const u = new URL(url);

@@ -1,4 +1,13 @@
-export type LatLng = { lat: number; lng: number };
+import {
+  lookupLedgerCoord,
+  lockPlaceInLedger,
+  normalizePlaceKey,
+  type LatLng,
+  type PlaceEntry,
+} from "./placeLedgerStorage";
+
+export type { LatLng, PlaceEntry };
+export { normalizePlaceKey, lockPlaceInLedger };
 
 const mem = new Map<string, LatLng | null>();
 const SS_KEY = "ancestory-nominatim-v1";
@@ -31,7 +40,9 @@ async function throttle() {
   lastRequestAt = Date.now();
 }
 
-/** Single place → coordinates (Nominatim). Cached in-memory and sessionStorage. */
+/** Single place → coordinates (Nominatim). Cached in-memory and sessionStorage.
+ *  Ledger (IndexedDB/localStorage) is checked early and takes precedence for speed.
+ */
 export async function geocodePlace(
   query: string,
   signal?: AbortSignal
@@ -39,7 +50,19 @@ export async function geocodePlace(
   const q = query.trim();
   if (!q) return null;
   const key = q.toLowerCase();
+
   if (mem.has(key)) return mem.get(key)!;
+
+  // 1. Fast path: persistent Place Ledger (user-locked / research / imported coords)
+  try {
+    const ledgerHit = await lookupLedgerCoord(q);
+    if (ledgerHit) {
+      mem.set(key, ledgerHit);
+      return ledgerHit;
+    }
+  } catch {
+    /* ledger unavailable — continue to other caches */
+  }
 
   const disk = readDisk();
   if (Object.prototype.hasOwnProperty.call(disk, key)) {
@@ -86,6 +109,14 @@ export async function geocodePlace(
   mem.set(key, o);
   disk[key] = o;
   writeDisk(disk);
+
+  // Auto-promote fresh Nominatim results into the persistent ledger (source-tagged).
+  // This makes subsequent visits / scope changes / reloads instant for these places.
+  // UI in later slices can let the user "lock" / override with higher confidence.
+  void lockPlaceInLedger(q, o, { source: 'nominatim', confidence: 0.7 }).catch(() => {
+    /* non-fatal */
+  });
+
   return o;
 }
 
@@ -126,4 +157,23 @@ export async function geocodePlacesContrail(
     onStep?.({ index: i, total, coord });
   }
   return out;
+}
+
+/* ------------------------------------------------------------------
+ * Dev-only debugging helpers (available in browser console during `npm run dev`)
+ * Usage example:
+ *   await __ANCESTORY_LEDGER.lock("Paris, France", {lat:48.8566, lng:2.3522}, {source:'user', notes:'manual test'})
+ *   await __ANCESTORY_LEDGER.get()
+ *   // Then hard reload and geocode the same string — should be instant from ledger
+ * ------------------------------------------------------------------ */
+if (import.meta.env.DEV) {
+  const w = window as any;
+  w.__ANCESTORY_LEDGER = {
+    lock: lockPlaceInLedger,
+    get: async () => (await import('./placeLedgerStorage')).getPlaceLedger(),
+    clear: async () => (await import('./placeLedgerStorage')).clearPlaceLedger(),
+    normalize: normalizePlaceKey,
+  };
+  // Also expose the main geocode for easy testing
+  w.__ANCESTORY_GEOCODE = geocodePlace;
 }

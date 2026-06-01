@@ -8,6 +8,9 @@ import { DualFanChart } from "./DualFanChart";
 import { ExternalDnaToolsPanel } from "./ExternalDnaToolsPanel";
 import { FileDropToolbar } from "./FileDropToolbar";
 import { OsintResearchPanel } from "./OsintResearchPanel";
+import { PlaceCurationPanel } from "./PlaceCurationPanel";
+import { ResearchProposalsPanel } from "./ResearchProposalsPanel";
+import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { MobileHomeShell } from "./MobileHomeShell";
 import { WorldDirectoryPage } from "./WorldDirectoryPage";
 import {
@@ -36,6 +39,10 @@ import { MediaThumb } from "./MediaThumb";
 import { birthYear, rowRepresentativeYear, timeBandClass } from "./timeBands";
 import { formatBloodLabel, type ABO, type Rh } from "./bloodStorage";
 import { DualDnaStreamCharts } from "./DualDnaStreamCharts";
+import { EventTimeline } from "./EventTimeline";
+import { readResearchProposals } from "./researchEnrichmentsStorage";
+import { AncestoryOracle } from "./AncestoryOracle";
+import { LineageCompatibility } from "./LineageCompatibility";
 import type { FaceShape } from "./faceShapeStorage";
 import {
   ancestorSet,
@@ -546,6 +553,19 @@ export function App() {
 
       {!rulersTestPath && tab !== "home" && <OsintResearchPanel />}
 
+      {!rulersTestPath && tab !== "home" && <PWAInstallPrompt />}
+
+      {!rulersTestPath && tab !== "home" && data && (
+        <PlaceCurationPanel
+          individuals={indi}
+          onLedgerChange={() => {
+            // Future: could trigger map refresh if needed
+          }}
+        />
+      )}
+
+      {!rulersTestPath && tab !== "home" && <ResearchProposalsPanel />}
+
       {tab !== "home" && (
         <FileDropToolbar
           onTreeText={onTreeFileText}
@@ -955,15 +975,44 @@ export function App() {
                       <span>Map: dual pat/mat birth throughlines (when plot is pat or mat births)</span>
                     </label>
                     {dualMode !== "quad" && (
-                      <DualDnaStreamCharts
-                        leftMixPct={leftMixPct}
-                        mixLeftLabel={mixLeftLabel}
-                        mixRightLabel={mixRightLabel}
-                        patDepth={pat.length}
-                        matDepth={mat.length}
-                        bloodTally={dnaBloodTally}
-                        onStreamFocus={setStreamAccent}
-                      />
+                      <>
+                        <DualDnaStreamCharts
+                          leftMixPct={leftMixPct}
+                          mixLeftLabel={mixLeftLabel}
+                          mixRightLabel={mixRightLabel}
+                          patDepth={pat.length}
+                          matDepth={mat.length}
+                          bloodTally={dnaBloodTally}
+                          onStreamFocus={setStreamAccent}
+                        />
+
+                        <EventTimeline
+                          individuals={indi}
+                          patIds={pat}
+                          matIds={mat}
+                          proposals={readResearchProposals().filter((p) => p.status === "accepted")}
+                        />
+
+                        <AncestoryOracle
+                          individuals={indi}
+                          rootId={rootId}
+                          patIds={pat}
+                          matIds={mat}
+                          proposals={readResearchProposals()}
+                          bloodMap={bloodMap}
+                          traitMap={traitMap}
+                        />
+
+                        {pat.length > 2 && (
+                          <LineageCompatibility
+                            individuals={indi}
+                            personA={rootId}
+                            personB={pat[2] ?? pat[1]}
+                            labelA="You / Root"
+                            labelB="3rd generation ancestor"
+                          />
+                        )}
+                      </>
                     )}
                   <label className="dual-dna-field">
                     <span>Child / focus (who inherits both streams)</span>

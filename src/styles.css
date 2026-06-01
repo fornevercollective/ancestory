@@ -3728,6 +3728,35 @@ html.mobile-map-active .app--mobile-home > .panel {
   .app--mobile-home .panel > .rootcap {
     display: none;
   }
+
+  /* New research & place curation panels on mobile */
+  .PlaceCurationPanel table,
+  .ResearchProposalsPanel .proposal-card {
+    font-size: 0.8rem;
+  }
+
+  .PlaceCurationPanel table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .mobile-section--research,
+  .mobile-section--places {
+    padding-bottom: 1rem;
+  }
+
+  /* Make Place Curation much more usable on phones */
+  @media (max-width: 640px) {
+    .PlaceCurationPanel td:nth-child(3),
+    .PlaceCurationPanel th:nth-child(3) {
+      display: none; /* hide source column on very small screens */
+    }
+    .PlaceCurationPanel input {
+      width: 58px !important;
+      font-size: 0.75rem;
+    }
+  }
 }
 
 @media (min-width: 721px) {

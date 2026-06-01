@@ -7,6 +7,9 @@ import { flattenLayerCards } from "./layerCardEntries";
 import { LayerCardIndex } from "./LayerCardIndex";
 import { ThroughlineBar } from "./ThroughlineBar";
 import { OsintWorkbench } from "./OsintWorkbench";
+import { PlaceCurationPanel } from "./PlaceCurationPanel";
+import { ResearchProposalsPanel } from "./ResearchProposalsPanel";
+import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { WorldDirectoryPage } from "./WorldDirectoryPage";
 import { DualPortraitColumns } from "./DualPortraitColumns";
 import {
@@ -238,6 +241,8 @@ export function MobileOnePage({
         )}
       </section>
 
+      <PWAInstallPrompt />
+
       <section className="mobile-section mobile-section--directory" id="mobile-directory" aria-labelledby="mobile-directory-h">
         <h2 id="mobile-directory-h" className="mobile-section-h">
           World directory — names, tribes, hominins
@@ -250,6 +255,21 @@ export function MobileOnePage({
           Open research — new finds
         </h2>
         <OsintWorkbench prefill={nameQuery} />
+      </section>
+
+      {/* New powerful features — now available on mobile too */}
+      <section className="mobile-section" id="mobile-research" aria-labelledby="mobile-research-h">
+        <h2 id="mobile-research-h" className="mobile-section-h">
+          Research Proposals (scooped history)
+        </h2>
+        <ResearchProposalsPanel />
+      </section>
+
+      <section className="mobile-section" id="mobile-places" aria-labelledby="mobile-places-h">
+        <h2 id="mobile-places-h" className="mobile-section-h">
+          Place Ledger &amp; Fast Mapping
+        </h2>
+        <PlaceCurationPanel individuals={individuals} />
       </section>
     </div>
   );

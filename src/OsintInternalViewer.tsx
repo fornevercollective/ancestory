@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   archiveEmbedUrl,
+  extractFindAGrave,
+  extractWikidataGenealogy,
+  extractWikipediaInfobox,
   loadOsintInternalContent,
   type OsintInternalPayload,
   type OsintViewRequest,
 } from "./osintInternalContent";
+import { addResearchProposal, proposalToNote } from "./researchEnrichmentsStorage";
+import { addOsintFind } from "./osintFindsStorage";
 import { osintSourceColor } from "./osintSearch";
 
 type Props = {
@@ -105,6 +110,64 @@ export function OsintInternalViewer({ request, onClose }: Props) {
           <button type="button" className="btn btn-small" onClick={onClose} aria-label="Close viewer">
             Close
           </button>
+
+          {(request.source === "wikidata" || request.source === "wikipedia" || request.source === "findagrave") && (
+            <button
+              type="button"
+              className="btn btn-small"
+              onClick={async () => {
+                try {
+                  let extracted: any = null;
+                  let sourceName = request.source;
+
+                  if (request.source === "wikidata") {
+                    extracted = await extractWikidataGenealogy(request.url);
+                  } else if (request.source === "wikipedia") {
+                    extracted = await extractWikipediaInfobox(request.url);
+                    sourceName = "wikipedia";
+                  } else if (request.source === "findagrave") {
+                    extracted = await extractFindAGrave(request.url);
+                    sourceName = "findagrave";
+                  }
+
+                  if (extracted) {
+                    const proposal = addResearchProposal({
+                      sourceUrl: request.url,
+                      source: sourceName,
+                      extracted: {
+                        y: extracted.birthDate || extracted.y,
+                        dy: extracted.deathDate || extracted.dy,
+                        bp: extracted.birthPlace || extracted.bp,
+                        dp: extracted.deathPlace || extracted.dp,
+                        notes: extracted.label || extracted.notes,
+                      },
+                      linkedPerson: extracted.label || request.title,
+                    });
+
+                    addOsintFind(
+                      `${sourceName}: ${extracted.label || request.title}`,
+                      proposalToNote(proposal)
+                    );
+
+                    const text = JSON.stringify(extracted, null, 2);
+                    await navigator.clipboard.writeText(text);
+
+                    alert(
+                      `✅ Extracted from ${sourceName} & staged!\n\n` +
+                        "Copied + added to Research Proposals & Osint Finds."
+                    );
+                  } else {
+                    alert("Could not extract structured data.");
+                  }
+                } catch (e) {
+                  alert("Extraction failed (CORS/proxy may help).");
+                }
+              }}
+              title="Extract structured birth/death/place data and create a research proposal"
+            >
+              Extract structured →
+            </button>
+          )}
         </div>
       </div>
 
