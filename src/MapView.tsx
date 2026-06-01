@@ -6,6 +6,7 @@ import { MapGeocodeOverlay, useGeocodeElapsedMs } from "./MapGeocodeOverlay";
 import { localPartnerMeta, type PartnerOverlayMap } from "./partnerOverlayStorage";
 import type { FamRec, IndiRec } from "./types";
 import { formatName, partnersForGeneticMap } from "./trace";
+import { birthYear } from "./timeBands";
 
 /** GED-backed map layers + labels for life domains; unsupported items are in MapScopeSelect (disabled). */
 export type MapScope =
@@ -70,6 +71,8 @@ type Props = {
   patMatBirthDualLines?: boolean;
   /** Thicker polyline for the focused stream when dual birth lines are shown. */
   streamAccent?: "pat" | "mat";
+  /** Global time filter from the persistent Deep Narrative header / slider */
+  timeRange?: [number, number];
 };
 
 function FitToCoords({ coords }: { coords: [number, number][] }) {
@@ -147,7 +150,7 @@ function idsForLineScope(
   matIds: string[],
   individuals: Record<string, IndiRec>
 ): string[] {
-  let ids = lineIdsForPatMat(scope, patIds, matIds);
+  let ids = lineIdsForPatMat(scope, filteredPat, filteredMat);
   if (scope === "pat-births-male" || scope === "mat-births-male") ids = filterSex(ids, individuals, "M");
   if (scope === "pat-births-female" || scope === "mat-births-female") ids = filterSex(ids, individuals, "F");
   return ids;
@@ -211,6 +214,7 @@ export function MapView({
   showFoot = true,
   patMatBirthDualLines = false,
   streamAccent = "pat",
+  timeRange = [-5000, 2300],
 }: Props) {
   const [pts, setPts] = useState<{ label: string; lat: number; lng: number; kind: Mk }[]>([]);
   const [line, setLine] = useState<[number, number][]>([]);
@@ -241,7 +245,25 @@ export function MapView({
         setLine([]);
         setLineB([]);
 
-      const geocodeRun = async (
+        // === Deeper time range + search-aware filtering ===
+        const [tStart, tEnd] = timeRange;
+        const isInRange = (id: string) => {
+          const rec = individuals[id];
+          if (!rec) return false;
+          const by = birthYear(rec);
+          const dy = rec.dy;
+          const inBirth = by != null && by >= tStart && by <= tEnd;
+          const inDeath = dy != null && dy >= tStart && dy <= tEnd;
+          return inBirth || inDeath;
+        };
+
+        const filteredPat = patIds.filter(isInRange);
+        const filteredMat = matIds.filter(isInRange);
+
+        // Helper for ordering markers by year when time filtering is active
+        const getYearForId = (id: string) => birthYear(individuals[id]) ?? 0;
+
+        const geocodeRun = async (
         places: string[],
         labels: string[],
         kinds: Mk[],
@@ -378,7 +400,7 @@ export function MapView({
       ] as const;
 
       if ((lineScopes as readonly string[]).includes(scope)) {
-        const ids = idsForLineScope(scope, patIds, matIds, individuals);
+        const ids = idsForLineScope(scope, filteredPat, filteredMat, individuals);
         const places: string[] = [];
         const labels: string[] = [];
         const kinds: Mk[] = [];
@@ -421,6 +443,19 @@ export function MapView({
               }
             }
           }
+
+          // Deeper ordering: sort by birth year when global time filter is active
+          if (timeRange && ids.length > 1) {
+            const withYears = places.map((p, i) => ({ place: p, label: labels[i], kind: kinds[i], year: getYearForId(ids[i] || '') }));
+            withYears.sort((a, b) => a.year - b.year);
+            places.length = 0; labels.length = 0; kinds.length = 0;
+            withYears.forEach(item => {
+              places.push(item.place);
+              labels.push(item.label);
+              kinds.push(item.kind);
+            });
+          }
+
           await geocodeRun(
             places,
             labels,
@@ -433,7 +468,7 @@ export function MapView({
           if (patMatBirthDualLines && connectLine) {
             const opp = oppositePatMatBirthScope(scope);
             if (opp) {
-              const oppIds = idsForLineScope(opp, patIds, matIds, individuals);
+              const oppIds = idsForLineScope(opp, filteredPat, filteredMat, individuals);
               const oppPlaces: string[] = [];
               for (const id of oppIds) {
                 const bp = individuals[id]?.bp?.trim();

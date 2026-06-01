@@ -29,3 +29,10 @@ export function rowRepresentativeYear(
   if (ly != null && ry != null) return Math.round((ly + ry) / 2);
   return ly ?? ry;
 }
+
+/** Human friendly formatting for very ancient / legendary dates (supports negative years) */
+export function formatAncientYear(y: number | null | undefined): string {
+  if (y == null) return "—";
+  if (y < 0) return `${Math.abs(y)} BCE`;
+  return String(y);
+}

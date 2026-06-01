@@ -49,6 +49,8 @@ import { readForwardConnections, forwardConnectionsToTimelineEvents } from "./fo
 import { TribalElderStoriesPanel } from "./TribalElderStoriesPanel";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
 import { TopNav } from "./TopNav";
+import { SearchHeader } from "./SearchHeader";
+import { DeepNarrativeCards } from "./DeepNarrativeCards";
 import { readElderStories, elderStoriesToTimelineEvents } from "./tribalElderStorage";
 import type { FaceShape } from "./faceShapeStorage";
 import {
@@ -155,9 +157,17 @@ export function App() {
   const [timeRange, setTimeRange] = useState<[number, number]>([-3000, 2200]);
 
   const handleFullTime = () => {
-    // Broad deep time range suitable for legendary figures (Rachtmar etc.) + future speculation
     setTimeRange([-5000, 2300]);
   };
+
+  // === Dynamic layout reshaping based on search + time depth ===
+  const storyFocus = useMemo(() => {
+    if (nameQuery.trim()) return 'search-focus';
+    const width = timeRange[1] - timeRange[0];
+    if (width < 600) return 'deep-narrow';
+    if (timeRange[0] < -500) return 'deep-history';
+    return 'normal';
+  }, [nameQuery, timeRange]);
   /** Path map above dual summary (same scope as Map tab) */
   const [dualShowPathMap, setDualShowPathMap] = useState(true);
   const [dualMapFull, setDualMapFull] = useState(false);
@@ -503,12 +513,17 @@ export function App() {
     [data, rootId, maxGenClamped]
   );
 
+  // === Extended Search for larger history throughlines ===
+  // Now searches people + major historical events (rulers, deep time, legendary figures like Rachtmar line)
   const searchHits = useMemo(() => {
     const q = nameQuery.trim().toLowerCase();
-    if (!data) return [] as { id: string; name: string }[];
+    if (!data && !MAJOR_EVENTS.length) return [] as { id: string; name: string }[];
     const filterActive = identityGenre !== "all";
     if (!q && !filterActive) return [] as { id: string; name: string }[];
-    const hits: { id: string; name: string; weight: number }[] = [];
+
+    const hits: { id: string; name: string; weight: number; year?: number }[] = [];
+
+    // People search (existing)
     for (const id of Object.keys(indi)) {
       const name = formatName(id, indi);
       const nl = name.toLowerCase();
@@ -518,6 +533,19 @@ export function App() {
       if (filterActive && !personMatchesGenre(sig, identityGenre)) continue;
       hits.push({ id, name, weight: genreSortWeight(sig, identityGenre) });
     }
+
+    // Extended: History throughlines (major events, ancient rulers, deep legendary)
+    for (const evt of MAJOR_EVENTS) {
+      const label = evt.label.toLowerCase();
+      if (q && !label.includes(q)) continue;
+      hits.push({
+        id: `event-${evt.year}-${evt.label.slice(0, 20)}`,
+        name: `📜 ${evt.label}`,
+        weight: 50, // lower priority than people but still surfaces
+        year: evt.year,
+      });
+    }
+
     hits.sort((a, b) => {
       if (a.weight !== b.weight) return a.weight - b.weight;
       return a.name.localeCompare(b.name);
@@ -557,9 +585,173 @@ export function App() {
 
   const searchHitIds = useMemo(() => searchHits.map((h) => h.id), [searchHits]);
 
+  // === Story Cards derived from current search + time range + data ===
+  // These update as the search "reshapes the page"
+  const currentStoryCards = useMemo(() => {
+    const cards: any[] = [];
+
+    if (!data || !nameQuery.trim()) {
+      // Default deep narrative cards when no specific search
+      if (MAJOR_EVENTS && MAJOR_EVENTS.length > 0) {
+        MAJOR_EVENTS.slice(0, 4).forEach((evt, idx) => {
+          if (evt.year >= timeRange[0] && evt.year <= timeRange[1]) {
+            cards.push({
+              id: `event-${idx}`,
+              title: evt.label,
+              year: evt.year,
+              type: "event",
+              description: (evt as any).category || "Historical moment",
+            });
+          }
+        });
+      }
+      return cards;
+    }
+
+    // When searching, generate cards around the top matches
+    searchHits.slice(0, 6).forEach((hit, idx) => {
+      const rec = indi[hit.id];
+      if (!rec) return;
+
+      const by = birthYear(rec);
+      if (by != null && by >= timeRange[0] && by <= timeRange[1]) {
+        cards.push({
+          id: `birth-${hit.id}`,
+          title: `${hit.name} — Born`,
+          year: by,
+          type: "birth",
+          subtitle: rec.bp || "",
+          onClick: () => setRootId(hit.id),
+        });
+      }
+
+      if (rec.dy && rec.dy >= timeRange[0] && rec.dy <= timeRange[1]) {
+        cards.push({
+          id: `death-${hit.id}`,
+          title: `${hit.name} — Died`,
+          year: rec.dy,
+          type: "death",
+          onClick: () => setRootId(hit.id),
+        });
+      }
+    });
+
+    // Add any major events overlapping the search context
+    (majorHistoricalEvents || []).slice(0, 3).forEach((evt, idx) => {
+      if (evt.year >= timeRange[0] && evt.year <= timeRange[1]) {
+        cards.push({
+          id: `story-event-${idx}`,
+          title: evt.label,
+          year: evt.year,
+          type: "event",
+        });
+      }
+    });
+
+    return cards;
+  }, [data, nameQuery, searchHits, indi, timeRange, majorHistoricalEvents]);
+
   return (
-    <div className={`app app-wide${tab === "home" ? " app--mobile-home" : ""}`}>
-      {/* New persistent top navigation with global history slider */}
+    <div className={`app app-wide story-${storyFocus}${tab === "home" ? " app--mobile-home" : ""}`}>
+      {/* === New Story-Driven Header === */}
+      {/* 1. Search bar as the primary header */}
+      <SearchHeader
+        value={nameQuery}
+        onChange={setNameQuery}
+        onFocusStory={(personId) => {
+          if (personId) {
+            if (personId.startsWith('event-')) {
+              // Extended search hit on a history throughline (e.g. ancient ruler event)
+              // Snap timeRange to that era for deep narrative exploration (perfect for Rachtmar-3 style links)
+              const yearMatch = personId.match(/event-(-?\d+)/);
+              if (yearMatch) {
+                const y = parseInt(yearMatch[1]);
+                setTimeRange([y - 150, y + 150]); // generous window around the historical moment
+              }
+              setTab("deep-history" as any);
+            } else {
+              setRootId(personId);
+              const rec = indi[personId];
+              const by = birthYear(rec);
+              if (by != null) {
+                const lifespanStart = by - 30;
+                const lifespanEnd = (rec?.dy || by + 80) + 50;
+                setTimeRange([Math.max(-5000, lifespanStart), Math.min(2300, lifespanEnd)]);
+              }
+              setTab("deep-history" as any);
+            }
+          }
+        }}
+        searchHits={searchHits}
+      />
+
+      {/* 2. Deep Narrative Timeline directly under the search header */}
+      <div style={{ padding: "8px 16px", background: "#0f1114", borderBottom: "1px solid #222a38" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#5ab0ff", marginBottom: 4, paddingLeft: 4 }}>
+          DEEP NARRATIVE TIMELINE
+        </div>
+        <EventTimeline
+          individuals={indi}
+          patIds={pat}
+          matIds={mat}
+          proposals={readResearchProposals().filter((p) => p.status === "accepted")}
+          majorEvents={[
+            ...MAJOR_EVENTS,
+            ...forwardConnectionsToTimelineEvents(readForwardConnections()),
+            ...elderStoriesToTimelineEvents(readElderStories()),
+          ]}
+          onEventClick={(evt) => {
+            setLastTimelineEvent(evt);
+          }}
+          timeRange={timeRange}
+          height={180}
+        />
+      </div>
+
+      {/* 3. Map window under the timeline */}
+      <div style={{ padding: "8px 16px", background: "#111418", borderBottom: "1px solid #222a38" }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#5ab0ff", marginBottom: 4, paddingLeft: 4 }}>
+          MAP — Filtered by current story &amp; time window
+        </div>
+        <div className="map-window" style={{ height: 240, borderRadius: 8, overflow: "hidden", border: "1px solid #2d323c", position: "relative" }}>
+          <MapView
+            individuals={indi}
+            families={fam}
+            rootId={rootId}
+            patIds={pat}
+            matIds={mat}
+            scope={mapScope}
+            connectLine={mapConnectLine}
+            includePartners={mapIncludePartners}
+            partnerOverlay={partnerOverlay}
+            embed={true}
+            showFoot={false}
+            patMatBirthDualLines={patMatBirthDualLines}
+            streamAccent={streamAccent}
+            timeRange={timeRange}
+          />
+          <button
+            onClick={() => setTab("map" as any)}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              fontSize: 11,
+              padding: "3px 8px",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              zIndex: 10,
+            }}
+          >
+            Full Map →
+          </button>
+        </div>
+      </div>
+
+      {/* Persistent TopNav / Menu items (now secondary) */}
       <TopNav
         currentTab={tab as any}
         onTabChange={(newTab) => setTab(newTab as any)}
@@ -575,18 +767,13 @@ export function App() {
         showUpgradePill={isMinimalData || isFixtureData}
       />
 
-      <header className="hdr" style={{ paddingTop: 12 }}>
-        <h1>Ancestory</h1>
-        <p className="sub">
-          Inclusive and honest history for our child and the future of humanity — 2SLGBTQI+ from birth and milestones to now; an evolution.
-        </p>
-        <p
-          className="sub-note"
-          title="Your tree.json must include those xrefs to match the sample, or change root and compare in the controls."
-        >
-          Dual view aligns father’s line and mother’s line by generation from the root you choose, or compares two patrilines from two roots. Sample tree: <code>@P1@</code> Erika Fortner; compare <code>@P2@</code> Tad Ericson.
-        </p>
-      </header>
+      {/* 4. Deep Narrative Timeline Cards — reshaped by search */}
+      <div className="deep-narrative-cards">
+        <DeepNarrativeCards 
+          cards={currentStoryCards} 
+          title="Deep Narrative Timeline Cards (evolving with your search)"
+        />
+      </div>
 
       {!rulersTestPath && tab !== "home" && <OsintResearchPanel />}
 
@@ -885,6 +1072,48 @@ export function App() {
               {tab === "search" && "Search by name"}
               {tab === "deep-history" && "Deep History & Legendary Extension"}
             </h2>
+
+            {tab === "deep-history" && (
+              <div style={{ padding: 16, background: "#0f1114", borderRadius: 8, margin: "12px 0" }}>
+                <h3 style={{ marginTop: 0, color: "#5ab0ff" }}>Extending Far Back — Test Case: Felim Rachtmar (Rachtmar-3)</h3>
+                
+                <p>
+                  This profile on WikiTree represents one of Ireland’s legendary High Kings (~80–119 AD). 
+                  His line connects backward through Tuathal Teachtmar into the ancient royal dynasties of Ireland.
+                </p>
+
+                <button
+                  onClick={() => {
+                    // Reshape the entire story view for deep legendary time
+                    setTimeRange([-100, 400]); // Focus on the era around Rachtmar and immediate ancestors
+                    setTab("deep-history" as any);
+                    // Add some visual emphasis by clearing narrow search if any
+                    if (nameQuery) setNameQuery("");
+                  }}
+                  style={{
+                    padding: "8px 16px",
+                    background: "#3a5a8c",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    marginBottom: 12,
+                  }}
+                >
+                  Load Rachtmar-era Deep Time View
+                </button>
+
+                <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.9 }}>
+                  <strong>Tips for pushing lineages as far back as possible:</strong>
+                  <ul style={{ marginTop: 6 }}>
+                    <li>Use the global History Slider (in the top bar) to explore from -5000 BCE through the early medieval period.</li>
+                    <li>Add legendary/ancient figures to your tree.json with approximate years (negative for BCE).</li>
+                    <li>The Deep Narrative Timeline and Cards above will automatically surface relevant beats.</li>
+                    <li>Combine with Rulers view for overlaps with known High Kings and historical events.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
             <p className="rootcap">
               Root: <code className="mono">{rootId}</code> — {rootLabel}
               {tab === "dual" && (dualMode === "pat-pat" || dualMode === "quad") && (

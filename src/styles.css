@@ -4878,6 +4878,43 @@ html.mobile-map-active .app--mobile-home > .panel {
   height: auto;
 }
 
+/* Polish for new story-driven header (search + deep narrative + map) */
+.search-header input {
+  transition: box-shadow 150ms ease;
+}
+.search-header input:focus {
+  box-shadow: 0 0 0 3px rgba(90, 176, 255, 0.2);
+  outline: none;
+}
+
+.global-history-slider {
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .search-header {
+    padding: 8px 12px;
+  }
+  .search-header input {
+    font-size: 14px;
+  }
+}
+
+/* Dynamic layout reshaping as the story evolves */
+.story-deep-narrow .event-timeline,
+.story-search-focus .event-timeline {
+  height: 260px !important; /* taller timeline when focused */
+}
+
+.story-deep-history .map-window {
+  height: 320px !important; /* emphasize map in deep time */
+}
+
+.story-search-focus .deep-narrative-cards {
+  background: #1a2333;
+  border: 1px solid #5ab0ff33;
+}
+
 /* Floating Data button + upgrade experience polish */
 .pulse-highlight {
   animation: pulse-glow 1.6s ease-out;
