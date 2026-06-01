@@ -13,6 +13,7 @@ import { ResearchProposalsPanel } from "./ResearchProposalsPanel";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { MobileHomeShell } from "./MobileHomeShell";
 import { WorldDirectoryPage } from "./WorldDirectoryPage";
+import { useIsMobile } from "./useIsMobile";
 import {
   genreSortWeight,
   identitySignal,
@@ -152,6 +153,9 @@ export function App() {
   /** Which stream gets the thicker line when dual birth throughlines are on */
   const [streamAccent, setStreamAccent] = useState<"pat" | "mat">("pat");
   const [lastTimelineEvent, setLastTimelineEvent] = useState<{ year: number; label: string; type: string } | null>(null);
+
+  // Responsive: auto-detect mobile vs desktop by screen width so we don't duplicate menus
+  const isMobile = useIsMobile(720);
 
   // === New: Global persistent history slider state ===
   // Supports deep time (negative years) for legendary/ancient figures like Felim Rachtmar and beyond.
@@ -653,9 +657,29 @@ export function App() {
   }, [data, nameQuery, searchHits, indi, timeRange]);
 
   return (
-    <div className={`app app-wide story-${storyFocus}${tab === "home" ? " app--mobile-home" : ""}`}>
-      {/* === COHESIVE NARRATIVE COCKPIT === */}
-      {/* One unified, search-driven story surface at the top of the app */}
+    <div className={`app app-wide app-with-topnav story-${storyFocus}${tab === "home" && isMobile ? " app--mobile-home" : ""}`}>
+      {/* Primary navigation — sticky header, always at top */}
+      <TopNav
+        currentTab={tab as any}
+        onTabChange={(newTab) => setTab(newTab as any)}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+        fullMin={-5000}
+        fullMax={2300}
+        onFullTime={handleFullTime}
+        onOpenHumanity={() => {
+          if (isMinimalData || isFixtureData) {
+            const controls = document.querySelector(".controls");
+            controls?.scrollIntoView({ behavior: "smooth" });
+            return;
+          }
+          setTab("directory");
+        }}
+        showUpgradePill={isMinimalData || isFixtureData}
+      />
+
+      {/* Story surface — search, timeline, map (hidden on World directory) */}
+      {tab !== "directory" && (
       <NarrativeCockpit
         nameQuery={nameQuery}
         onNameQueryChange={setNameQuery}
@@ -709,31 +733,16 @@ export function App() {
           onFullTime: handleFullTime,
         }}
       />
+      )}
 
-      {/* Secondary navigation (views + data + global slider) */}
-      <TopNav
-        currentTab={tab as any}
-        onTabChange={(newTab) => setTab(newTab as any)}
-        timeRange={timeRange}
-        onTimeRangeChange={setTimeRange}
-        fullMin={-5000}
-        fullMax={2300}
-        onFullTime={handleFullTime}
-        onOpenData={() => {
-          const controls = document.querySelector('.controls');
-          controls?.scrollIntoView({ behavior: 'smooth' });
-        }}
-        showUpgradePill={isMinimalData || isFixtureData}
-        // Note: slider props no longer needed in TopNav (moved into NarrativeCockpit next to timeline)
-      />
-
-      {/* Deep Narrative Cards — the living story feed (no duplicate timeline title) */}
+      {tab !== "directory" && (
       <div className="deep-narrative-cards" style={{ padding: "12px 20px 20px" }}>
         <DeepNarrativeCards 
           cards={currentStoryCards} 
           title="Story Beats"
         />
       </div>
+      )}
 
       {!rulersTestPath && tab !== "home" && <OsintResearchPanel />}
 
@@ -1108,7 +1117,9 @@ export function App() {
               </section>
             )}
 
-            {tab === "home" && (
+            {/* Mobile-only home experience (one-page shell + bottom tab menu).
+                On desktop we use the regular panels + TopNav instead of duplicating menus. */}
+            {tab === "home" && isMobile && (
               <MobileHomeShell
                 rootId={rootId}
                 rootLabel={rootLabel}
