@@ -737,17 +737,34 @@ export function App() {
       </section>
       )}
 
+      {loading && !rulersTestPath && !data && (
+        <section className="panel" style={{ textAlign: "center", opacity: 0.85 }}>
+          Loading tree data…
+          <div style={{ fontSize: "0.85em", marginTop: 4 }}>
+            (Large trees can take a few seconds on first load)
+          </div>
+        </section>
+      )}
+
       {err && !rulersTestPath && (
         <section className="panel err">
-          <strong>Could not load JSON.</strong> {err}{" "}
-          <span className="hint">
-            Run{" "}
-            <code className="mono">
-              python3 tools/ged_export.py &quot;/path/to/tree.ged&quot; public/tree.json
-            </code>{" "}
-            (also writes <code className="mono">public/rulers.json</code>) then{" "}
-            <code className="mono">npm run dev</code>.
-          </span>
+          <strong>Could not load tree data.</strong> {err}
+          <div style={{ marginTop: 8, fontSize: "0.9em" }}>
+            Try the <strong>“Tree data source”</strong> dropdown above and select{" "}
+            <em>GitHub public/tree.json (main, raw)</em> or paste your own file.
+            <br />
+            You can also run the export locally:
+            <code className="mono" style={{ marginLeft: 4 }}>
+              python3 tools/ged_export.py "path/to/tree.ged" public/tree.json
+            </code>
+          </div>
+        </section>
+      )}
+
+      {!loading && data && Object.keys(indi).length < 5 && !rulersTestPath && (
+        <section className="panel" style={{ background: "#222", borderLeft: "4px solid #f90" }}>
+          <strong>Limited demo data loaded.</strong> The current tree has very few people.
+          Use the data source selector above to load a fuller tree.json (or drop/paste your own).
         </section>
       )}
 
