@@ -4878,6 +4878,25 @@ html.mobile-map-active .app--mobile-home > .panel {
   height: auto;
 }
 
+/* Floating Data button + upgrade experience polish */
+.pulse-highlight {
+  animation: pulse-glow 1.6s ease-out;
+}
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(90, 176, 255, 0.4); }
+  70% { box-shadow: 0 0 0 14px rgba(90, 176, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(90, 176, 255, 0); }
+}
+
+/* Make the upgrade banner even more premium on hover/focus */
+.upgrade-banner {
+  transition: transform 120ms ease, box-shadow 200ms ease;
+}
+.upgrade-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.3);
+}
+
 .osint-json-pre {
   margin: 0;
   font-size: 0.68rem;

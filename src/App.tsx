@@ -745,11 +745,41 @@ export function App() {
       )}
 
       {loading && !rulersTestPath && !data && (
-        <section className="panel" style={{ textAlign: "center", opacity: 0.85 }}>
-          Loading tree data…
-          <div style={{ fontSize: "0.85em", marginTop: 4 }}>
-            (Large trees can take a few seconds on first load)
+        <section className="panel" style={{ 
+          textAlign: "center", 
+          padding: "32px 16px",
+          background: "linear-gradient(180deg, #171a20 0%, #111418 100%)" 
+        }}>
+          <div style={{ fontSize: "1.1em", fontWeight: 500, marginBottom: 8 }}>
+            Loading your ancestry data…
           </div>
+          <div style={{ fontSize: "0.9em", opacity: 0.75, maxWidth: 420, margin: "0 auto" }}>
+            Large family trees can take a few seconds on first visit. 
+            Everything runs privately in your browser.
+          </div>
+          <div style={{ 
+            marginTop: 18, 
+            height: 4, 
+            background: "#222a38", 
+            borderRadius: 999,
+            overflow: "hidden",
+            maxWidth: 260,
+            marginLeft: "auto",
+            marginRight: "auto"
+          }}>
+            <div style={{ 
+              height: "100%", 
+              width: "40%", 
+              background: "linear-gradient(90deg, #5ab0ff, #8ab4f8)", 
+              animation: "loading-progress 1.6s infinite ease-in-out" 
+            }} />
+          </div>
+          <style>{`
+            @keyframes loading-progress {
+              0% { transform: translateX(-80%); }
+              100% { transform: translateX(280%); }
+            }
+          `}</style>
         </section>
       )}
 
@@ -863,6 +893,30 @@ export function App() {
               )}
             </p>
 
+            {tab === "home" && (isMinimalData || isFixtureData) && !treeBlobUrl && (
+              <section className="panel" style={{ 
+                background: "linear-gradient(180deg, #1a2333 0%, #14181f 100%)",
+                border: "1px solid #2f3f55",
+                marginBottom: 12
+              }}>
+                <div style={{ fontSize: "1.05em", fontWeight: 600, marginBottom: 8 }}>
+                  Welcome to Ancestory
+                </div>
+                <div style={{ opacity: 0.9, lineHeight: 1.5 }}>
+                  A different kind of ancestry tool — built for depth, honesty, and beauty.
+                  <ul style={{ margin: "10px 0 0", paddingLeft: 18, fontSize: "0.92em", opacity: 0.85 }}>
+                    <li>Dual patriline + matriline visualizations side-by-side</li>
+                    <li>Morphology, phenotype &amp; staged traits across a lifetime</li>
+                    <li>Historical rulers, blood migration, OSINT research tools</li>
+                    <li>100% private — your data never leaves this browser</li>
+                  </ul>
+                </div>
+                <div style={{ marginTop: 12, fontSize: "0.85em", opacity: 0.7 }}>
+                  Load the full rich demo data using the floating <strong>Data</strong> button (bottom right) or the controls below.
+                </div>
+              </section>
+            )}
+
             {tab === "home" && (
               <MobileHomeShell
                 rootId={rootId}
@@ -890,7 +944,7 @@ export function App() {
                   setDualMode("pat-pat");
                 }}
                 onDualModeChange={setDualMode}
-                sourceLine={data.source}
+                sourceLine={data?.source}
                 searchHits={searchHits}
                 onTreeText={onTreeFileText}
                 onRulersText={onRulersFileText}
@@ -1661,7 +1715,7 @@ export function App() {
                       maxItems={40}
                       ids={searchHitIds}
                       individuals={indi}
-                      onPickRoot={(id) => setRootId(id)}
+                      onPickRoot={(id: string) => setRootId(id)}
                       leadText="Top matches as cards (same order as list)."
                       ariaLabel="Search hits — tap a card to set root"
                     />
@@ -1719,6 +1773,68 @@ export function App() {
           </div>,
           document.body
         )}
+
+      {/* Floating Data Sources button — always accessible, especially powerful on mobile/home */}
+      {!rulersTestPath && (
+        <button
+          type="button"
+          onClick={() => {
+            // Scroll to the data controls section
+            const controls = document.querySelector('.controls');
+            if (controls) {
+              controls.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              // Briefly highlight the upgrade banner if visible
+              setTimeout(() => {
+                const banner = document.querySelector('.upgrade-banner');
+                if (banner) {
+                  banner.classList.add('pulse-highlight');
+                  setTimeout(() => banner.classList.remove('pulse-highlight'), 1600);
+                }
+              }, 650);
+            } else {
+              // Fallback: focus the preset select
+              const sel = document.querySelector('.data-source-preset');
+              (sel as HTMLElement)?.focus();
+            }
+          }}
+          style={{
+            position: 'fixed',
+            bottom: 18,
+            right: 18,
+            zIndex: 999,
+            background: 'rgba(26, 35, 51, 0.92)',
+            color: '#c9d4e8',
+            border: '1px solid #3a4a63',
+            borderRadius: 999,
+            padding: '9px 16px 9px 15px',
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+          }}
+          aria-label="Open data sources and tree loading options"
+        >
+          <span style={{ fontSize: 15 }}>📁</span>
+          <span>Data</span>
+          {(isMinimalData || isFixtureData) && (
+            <span style={{ 
+              background: '#5ab0ff', 
+              color: '#111', 
+              fontSize: 10, 
+              padding: '1px 6px', 
+              borderRadius: 999, 
+              fontWeight: 700,
+              marginLeft: 2
+            }}>
+              Upgrade
+            </span>
+          )}
+        </button>
+      )}
     </div>
   );
 }
