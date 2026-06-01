@@ -48,6 +48,7 @@ import { ForwardLineagePanel } from "./ForwardLineagePanel";
 import { readForwardConnections, forwardConnectionsToTimelineEvents } from "./forwardLineageStorage";
 import { TribalElderStoriesPanel } from "./TribalElderStoriesPanel";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
+import { TopNav } from "./TopNav";
 import { readElderStories, elderStoriesToTimelineEvents } from "./tribalElderStorage";
 import type { FaceShape } from "./faceShapeStorage";
 import {
@@ -148,6 +149,15 @@ export function App() {
   /** Which stream gets the thicker line when dual birth throughlines are on */
   const [streamAccent, setStreamAccent] = useState<"pat" | "mat">("pat");
   const [lastTimelineEvent, setLastTimelineEvent] = useState<{ year: number; label: string; type: string } | null>(null);
+
+  // === New: Global persistent history slider state ===
+  // Supports deep time (negative years) for legendary/ancient figures like Felim Rachtmar and beyond.
+  const [timeRange, setTimeRange] = useState<[number, number]>([-3000, 2200]);
+
+  const handleFullTime = () => {
+    // Broad deep time range suitable for legendary figures (Rachtmar etc.) + future speculation
+    setTimeRange([-5000, 2300]);
+  };
   /** Path map above dual summary (same scope as Map tab) */
   const [dualShowPathMap, setDualShowPathMap] = useState(true);
   const [dualMapFull, setDualMapFull] = useState(false);
@@ -549,7 +559,23 @@ export function App() {
 
   return (
     <div className={`app app-wide${tab === "home" ? " app--mobile-home" : ""}`}>
-      <header className="hdr">
+      {/* New persistent top navigation with global history slider */}
+      <TopNav
+        currentTab={tab as any}
+        onTabChange={(newTab) => setTab(newTab as any)}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+        fullMin={-5000}
+        fullMax={2300}
+        onFullTime={handleFullTime}
+        onOpenData={() => {
+          const controls = document.querySelector('.controls');
+          controls?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        showUpgradePill={isMinimalData || isFixtureData}
+      />
+
+      <header className="hdr" style={{ paddingTop: 12 }}>
         <h1>Ancestory</h1>
         <p className="sub">
           Inclusive and honest history for our child and the future of humanity — 2SLGBTQI+ from birth and milestones to now; an evolution.
@@ -842,32 +868,7 @@ export function App() {
 
       {data && !rulersTestPath && (
         <>
-          <nav className="tabs">
-            {(
-              [
-                ["home", "Home"],
-                ["dual", "Dual lines"],
-                ["patriline", "Patriline"],
-                ["matriline", "Matriline"],
-                ["male-anc", `Male ancestors (${maleAnc.length})`],
-                ["female-anc", `Female ancestors (${femaleAnc.length})`],
-                ["by-gen", "By generation"],
-                ["map", "Map / path"],
-                ["rulers", "Rulers & realms"],
-                ["directory", "World directory"],
-                ["search", "Search / set root"],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                className={`tab ${tab === k ? "on" : ""}`}
-                onClick={() => setTab(k)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
+          {/* Navigation moved to persistent TopNav (top of app) */}
 
           <section className="panel">
             <h2 className="h2">
@@ -882,6 +883,7 @@ export function App() {
               {tab === "rulers" && "Rulers, titles & realm (heuristic export)"}
               {tab === "directory" && "World name directory — etymology, tribes, hominins"}
               {tab === "search" && "Search by name"}
+              {tab === "deep-history" && "Deep History & Legendary Extension"}
             </h2>
             <p className="rootcap">
               Root: <code className="mono">{rootId}</code> — {rootLabel}
@@ -1110,6 +1112,7 @@ export function App() {
                           individuals={indi}
                           patIds={pat}
                           matIds={mat}
+                          timeRange={timeRange}
                           proposals={readResearchProposals().filter((p) => p.status === "accepted")}
                           majorEvents={[
                             ...MAJOR_EVENTS,
@@ -1565,7 +1568,7 @@ export function App() {
                       <div key={g} className="genblock">
                         <h3 className="h3">Generation {g}</h3>
                         <ul className="list dense">
-                          {ids.map((id) => (
+                          {ids.map((id: string) => (
                             <li key={id}>
                               <span className="mono">{id}</span> — {formatName(id, indi)}{" "}
                               <span className="sex">({indi[id]?.s ?? "?"})</span>

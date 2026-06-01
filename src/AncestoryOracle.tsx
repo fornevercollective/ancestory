@@ -4,7 +4,7 @@ import type { ResearchProposal } from "./researchEnrichmentsStorage";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
 import { readForwardConnections } from "./forwardLineageStorage";
 import { readElderStories } from "./tribalElderStorage";
-import { bloodTallyForLine } from "./stagedTraitStats"; // reuse existing logic where possible
+import { birthYear } from "./timeBands";
 import { formatName } from "./trace";
 
 type Props = {

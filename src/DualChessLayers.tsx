@@ -1,5 +1,5 @@
 import type { IndiRec } from "./types";
-import { formatBloodLabel, type ABO, type Rh } from "./bloodStorage";
+import { formatBloodLabel, type ABO, type BloodStored, type Rh } from "./bloodStorage";
 import { faceShapeShort, type FaceShape } from "./faceShapeStorage";
 import { formatName } from "./trace";
 import type { StreamFanRow } from "./DualFanChart";

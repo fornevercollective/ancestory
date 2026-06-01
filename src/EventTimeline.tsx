@@ -16,6 +16,8 @@ type Props = {
   majorEvents?: Array<{ year: number; label: string; category: "history" | "science" | "space" | "tribal" | "migration" }>;
   /** Callback when user clicks an event (for map highlighting, details, etc.) */
   onEventClick?: (event: { year: number; label: string; type: string; relatedIds?: string[] }) => void;
+  /** Global time filter from the persistent history slider */
+  timeRange?: [number, number];
 };
 
 /**
@@ -39,9 +41,11 @@ export function EventTimeline({
   height = 380,
   majorEvents = [],
   onEventClick,
+  timeRange = [-5000, 2300],
 }: Props) {
+  const [timeStart, timeEnd] = timeRange;
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<echarts.ECharts | null>(null);
+  const chartRef = useRef<any | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -160,7 +164,7 @@ export function EventTimeline({
       });
     });
 
-    const option: echarts.EChartsOption = {
+    const option: any = {
       backgroundColor: "transparent",
       tooltip: { trigger: "item", confine: true },
       legend: {
@@ -230,7 +234,13 @@ export function EventTimeline({
       },
     };
 
-    chart.setOption(option, true);
+    // Apply global time filter from persistent slider
+    const filteredEvents = events.filter((e: any) => {
+      const y = e.value?.[0];
+      return y >= timeStart && y <= timeEnd;
+    });
+
+    option.series[0].data = filteredEvents;
 
     // Add click interaction for "make the timeline the star"
     chart.on("click", (params: any) => {

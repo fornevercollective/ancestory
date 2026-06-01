@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { IndiRec } from "./types";
 import { formatName } from "./trace";
-import { bloodTallyForLine } from "./stagedTraitStats";
 
 type Props = {
   individuals: Record<string, IndiRec>;

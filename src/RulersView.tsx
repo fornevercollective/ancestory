@@ -295,7 +295,7 @@ export function RulersView({ onOpenInDual, rulersJsonUrl = publicUrl("rulers.jso
               onChange={(e) => {
                 const v = Number(e.target.value);
                 setYearLo(v);
-                setYearHi((h) => (h < v ? v : h));
+                setYearHi((h) => (h == null || h < v ? v : h));
               }}
             />
           </label>
@@ -312,7 +312,7 @@ export function RulersView({ onOpenInDual, rulersJsonUrl = publicUrl("rulers.jso
               onChange={(e) => {
                 const v = Number(e.target.value);
                 setYearHi(v);
-                setYearLo((lo) => (lo > v ? v : lo));
+                setYearLo((lo) => (lo == null || lo > v ? v : lo));
               }}
             />
           </label>
