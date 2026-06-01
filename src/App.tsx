@@ -43,7 +43,12 @@ import { EventTimeline } from "./EventTimeline";
 import { readResearchProposals } from "./researchEnrichmentsStorage";
 import { AncestoryOracle } from "./AncestoryOracle";
 import { LineageCompatibility } from "./LineageCompatibility";
+import { AncestralResonance } from "./AncestralResonance";
+import { ForwardLineagePanel } from "./ForwardLineagePanel";
+import { readForwardConnections, forwardConnectionsToTimelineEvents } from "./forwardLineageStorage";
+import { TribalElderStoriesPanel } from "./TribalElderStoriesPanel";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
+import { readElderStories, elderStoriesToTimelineEvents } from "./tribalElderStorage";
 import type { FaceShape } from "./faceShapeStorage";
 import {
   ancestorSet,
@@ -992,7 +997,11 @@ export function App() {
                           patIds={pat}
                           matIds={mat}
                           proposals={readResearchProposals().filter((p) => p.status === "accepted")}
-                          majorEvents={MAJOR_EVENTS}
+                          majorEvents={[
+                            ...MAJOR_EVENTS,
+                            ...forwardConnectionsToTimelineEvents(readForwardConnections()),
+                            ...elderStoriesToTimelineEvents(readElderStories()),
+                          ]}
                           onEventClick={(evt) => {
                             // Timeline is the star — clicking an event gives rich feedback
                             console.log("[Ancestory Timeline Event]", evt);
@@ -1009,6 +1018,22 @@ export function App() {
                           bloodMap={bloodMap}
                           traitMap={traitMap}
                         />
+
+                        {/* Deeper ancestral matching — story overlaps, language, tribal knowledge */}
+                        {pat.length > 3 && (
+                          <AncestralResonance
+                            individuals={indi}
+                            proposals={readResearchProposals()}
+                            personAId={rootId}
+                            personBId={pat[3]}
+                          />
+                        )}
+
+                        {/* First-class Forward / Space Layer */}
+                        <ForwardLineagePanel individuals={indi} defaultAncestorId={rootId} />
+
+                        {/* Tribal Elder Stories — preserving what is fading */}
+                        <TribalElderStoriesPanel individuals={indi} />
 
                         {pat.length > 2 && (
                           <LineageCompatibility

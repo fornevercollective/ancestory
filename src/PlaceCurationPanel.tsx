@@ -295,8 +295,8 @@ export function PlaceCurationPanel({ individuals, onLedgerChange }: Props) {
         </div>
 
         <div className="muted" style={{ marginTop: "0.5rem", fontSize: "0.75rem" }}>
-          Places come from birth, death, residences, burials, and marriage/divorce events in your tree.
-          Locked coordinates are used instantly by all maps. User-locked entries are protected from bulk clear.
+          Places come from birth, death, residences, burials, marriage/divorce, elder stories, forward branches, and research proposals.
+          Locked coordinates power the entire story layer (maps + timeline + Oracle + Resonance).
         </div>
       </div>
     </details>

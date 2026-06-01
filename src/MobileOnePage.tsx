@@ -12,6 +12,10 @@ import { ResearchProposalsPanel } from "./ResearchProposalsPanel";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { EventTimeline } from "./EventTimeline";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
+import { ForwardLineagePanel } from "./ForwardLineagePanel";
+import { TribalElderStoriesPanel } from "./TribalElderStoriesPanel";
+import { readForwardConnections, forwardConnectionsToTimelineEvents } from "./forwardLineageStorage";
+import { readElderStories, elderStoriesToTimelineEvents } from "./tribalElderStorage";
 import { WorldDirectoryPage } from "./WorldDirectoryPage";
 import { DualPortraitColumns } from "./DualPortraitColumns";
 import {
@@ -255,9 +259,27 @@ export function MobileOnePage({
           patIds={[]} // Mobile view can be simplified; full version in desktop
           matIds={[]}
           proposals={[]}
-          majorEvents={MAJOR_EVENTS}
+          majorEvents={[
+            ...MAJOR_EVENTS,
+            ...forwardConnectionsToTimelineEvents(readForwardConnections()),
+            ...elderStoriesToTimelineEvents(readElderStories()),
+          ]}
           height={260}
         />
+      </section>
+
+      <section className="mobile-section" id="mobile-forward" aria-labelledby="mobile-forward-h">
+        <h2 id="mobile-forward-h" className="mobile-section-h">
+          Forward Lineage — Off-World Branches
+        </h2>
+        <ForwardLineagePanel individuals={individuals} />
+      </section>
+
+      <section className="mobile-section" id="mobile-elder" aria-labelledby="mobile-elder-h">
+        <h2 id="mobile-elder-h" className="mobile-section-h">
+          Elder Stories — Tribal Knowledge
+        </h2>
+        <TribalElderStoriesPanel individuals={individuals} />
       </section>
 
       <section className="mobile-section mobile-section--directory" id="mobile-directory" aria-labelledby="mobile-directory-h">

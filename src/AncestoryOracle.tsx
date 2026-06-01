@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import type { IndiRec } from "./types";
 import type { ResearchProposal } from "./researchEnrichmentsStorage";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
+import { readForwardConnections } from "./forwardLineageStorage";
+import { readElderStories } from "./tribalElderStorage";
 import { bloodTallyForLine } from "./stagedTraitStats"; // reuse existing logic where possible
 import { formatName } from "./trace";
 
@@ -112,6 +114,34 @@ export function AncestoryOracle({
         title: "Anchored in Deep History",
         body: `This lineage overlaps with ${relevantEvents.length} major recorded events (including scientific and early space milestones). Your personal story is not separate from the big arcs of human (and soon multi-planetary) civilization.`,
         confidence: 0.81,
+      });
+    }
+
+    // 7. Forward / multi-planetary branches (the new first-class layer)
+    const forwards = readForwardConnections().filter((f) =>
+      f.ancestorId === rootId || f.ancestorName?.toLowerCase().includes((individuals[rootId]?.n || "").toLowerCase())
+    );
+    if (forwards.length > 0) {
+      ins.push({
+        icon: "🚀",
+        title: "Branches Beyond Earth",
+        body: `This lineage already has ${forwards.length} recorded forward branches (Mars colonies, generation ships, exoplanet settlements). The Oracle sees the story continuing outward. The past was only the beginning.`,
+        confidence: 0.79,
+      });
+    }
+
+    // 8. Preserved elder & tribal knowledge
+    const elderStories = readElderStories();
+    const relevantElderStories = elderStories.filter((s) =>
+      s.linkedAncestorIds?.includes(rootId) ||
+      (individuals[rootId]?.n || "").toLowerCase().includes((s.tribalName || "").toLowerCase())
+    );
+    if (relevantElderStories.length > 0 || elderStories.length > 0) {
+      ins.push({
+        icon: "🪶",
+        title: "Living Knowledge Preserved",
+        body: `This work is helping hold space for ${elderStories.length} elder stories and tribal teachings. Knowledge that was fading is being carried forward. The circles are not closed yet.`,
+        confidence: 0.94,
       });
     }
 
