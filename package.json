@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run prepare-data && vite build",
     "preview": "vite preview",
+    "prepare-data": "node tools/prepare-public-data.js",
     "export-tree": "python3 tools/ged_export.py",
     "export-tree-md": "python3 tools/tree_to_markdown.py"
   },

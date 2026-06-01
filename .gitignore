@@ -1,2 +1,8 @@
 node_modules
 dist
+
+# Large personal genealogy exports — we keep the rich version at the repo root
+# (already tracked) and serve it via the "GitHub (full rich demo)" preset on the live site.
+# This keeps the built artifact + public/ folder reasonably sized for GitHub Pages.
+public/tree.json
+public/rulers.json

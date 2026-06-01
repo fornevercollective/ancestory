@@ -190,6 +190,10 @@ export function App() {
   const effectiveRulersJsonUrl = rulersBlobUrl ?? (rulersCustomUrl.trim() || publicUrl("rulers.json"));
   const { data, err, loading, reload } = useTreeData(effectiveJsonUrl || null);
 
+  // Smart detection: is the currently loaded tree the tiny fixture or otherwise very limited?
+  const isMinimalData = !data || Object.keys(data.individuals || {}).length < 12;
+  const isFixtureData = data?.source?.includes("fixture:minimal");
+
   const onTreeFileText = useCallback((text: string) => {
     try {
       const o = JSON.parse(text) as { individuals?: unknown; families?: unknown };
@@ -604,10 +608,13 @@ export function App() {
       )}
 
       {!rulersTestPath && (
-      <section className="panel controls">
+      <section className="panel controls" style={{ borderTop: "2px solid #2a3a4f" }}>
+        <div style={{ marginBottom: 6, fontSize: "0.85em", opacity: 0.75, fontWeight: 500 }}>
+          Data Sources — your trees load instantly in the browser with zero uploads
+        </div>
         <div className="controls-row controls-row--data-source">
           <label>
-            <span>Tree data source</span>
+            <span>Primary tree</span>
             <select
               className="sel data-source-preset"
               value={treeSourcePreset}
@@ -626,9 +633,9 @@ export function App() {
                 }
               }}
             >
-              <option value="site">This site (bundled tree.json)</option>
-              <option value="github-main">GitHub public/tree.json (main, raw)</option>
-              <option value="custom">Custom tree.json URL</option>
+              <option value="site">Bundled (this build)</option>
+              <option value="github-main">GitHub (full rich demo data)</option>
+              <option value="custom">Custom URL / paste below</option>
             </select>
           </label>
           <label className="controls-tree-url">
@@ -751,7 +758,7 @@ export function App() {
           <strong>Could not load tree data.</strong> {err}
           <div style={{ marginTop: 8, fontSize: "0.9em" }}>
             Try the <strong>“Tree data source”</strong> dropdown above and select{" "}
-            <em>GitHub public/tree.json (main, raw)</em> or paste your own file.
+            <em>GitHub (full rich demo data)</em> or paste your own file.
             <br />
             You can also run the export locally:
             <code className="mono" style={{ marginLeft: 4 }}>
@@ -761,10 +768,45 @@ export function App() {
         </section>
       )}
 
-      {!loading && data && Object.keys(indi).length < 5 && !rulersTestPath && (
-        <section className="panel" style={{ background: "#222", borderLeft: "4px solid #f90" }}>
-          <strong>Limited demo data loaded.</strong> The current tree has very few people.
-          Use the data source selector above to load a fuller tree.json (or drop/paste your own).
+      {/* Prominent "make it better" upgrade experience — this is a key differentiator */}
+      {!rulersTestPath && (isMinimalData || isFixtureData) && !treeBlobUrl && (
+        <section className="panel upgrade-banner" style={{
+          background: "linear-gradient(135deg, #1a2333 0%, #11181f 100%)",
+          border: "1px solid #3a5a8c",
+          borderLeft: "5px solid #5ab0ff"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <strong style={{ fontSize: "1.05em" }}>This is the minimal demo dataset.</strong>
+              <div style={{ marginTop: 4, opacity: 0.9 }}>
+                Ancestory shines with a real family tree. Load the full rich demo data (the actual Fortner/Ericson tree used during development) with one click.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setTreeSourcePreset("github-main");
+                setJsonUrl(RAW_GITHUB_TREE_MAIN);
+                setRulersCustomUrl(RAW_GITHUB_RULERS_MAIN);
+                // Trigger reload of the new source
+                setTimeout(() => reload?.(), 50);
+              }}
+              style={{
+                padding: "10px 20px",
+                fontSize: "0.95em",
+                whiteSpace: "nowrap",
+                background: "#5ab0ff",
+                color: "#111",
+                fontWeight: 600
+              }}
+            >
+              Load full rich demo data →
+            </button>
+          </div>
+          <div style={{ marginTop: 8, fontSize: "0.8em", opacity: 0.7 }}>
+            Or drop/paste your own tree.json above. Your data stays 100% in your browser.
+          </div>
         </section>
       )}
 

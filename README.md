@@ -6,3 +6,13 @@ LOOKING AROUND
 <img width="1215" height="850" alt="Screenshot 2026-05-15 at 2 23 59 PM" src="https://github.com/user-attachments/assets/0df438db-c5b5-4a46-af44-5b09b3d738c7" />
 WORK IN PROGRESS - FRI'MAY'2026
 <img width="1215" height="990" alt="Screenshot 2026-05-15 at 3 27 03 PM" src="https://github.com/user-attachments/assets/77ef20a5-72d1-44a1-8f3d-3d11e9f18bba" />
+
+---
+
+## Development
+
+- `npm run dev` — starts the dev server (automatically prefers the rich `tree.json` at the project root)
+- `npm run build` — runs `prepare-data` then builds. The smart script will either copy your local rich tree or download the latest from the repo so the deployed site always has excellent demo data.
+- Large personal `tree.json` / `rulers.json` files are intentionally kept out of `public/` (see `.gitignore`). The live site offers a one-click "Load full rich demo data" experience powered by the root-level files in this repo.
+
+The public demo at https://fornevercollective.github.io/ancestory/ is designed to feel premium and immediately useful — far better onboarding than most genealogy tools.
