@@ -49,7 +49,7 @@ import { readForwardConnections, forwardConnectionsToTimelineEvents } from "./fo
 import { TribalElderStoriesPanel } from "./TribalElderStoriesPanel";
 import { MAJOR_EVENTS } from "./majorHistoricalEvents";
 import { TopNav } from "./TopNav";
-import { SearchHeader } from "./SearchHeader";
+import { NarrativeCockpit } from "./NarrativeCockpit";
 import { DeepNarrativeCards } from "./DeepNarrativeCards";
 import { readElderStories, elderStoriesToTimelineEvents } from "./tribalElderStorage";
 import type { FaceShape } from "./faceShapeStorage";
@@ -113,7 +113,8 @@ type Tab =
   | "search"
   | "map"
   | "rulers"
-  | "directory";
+  | "directory"
+  | "deep-history";
 
 type DualMode = "pat-mat" | "pat-pat" | "quad";
 
@@ -637,7 +638,7 @@ export function App() {
     });
 
     // Add any major events overlapping the search context
-    (majorHistoricalEvents || []).slice(0, 3).forEach((evt, idx) => {
+    (MAJOR_EVENTS || []).slice(0, 3).forEach((evt: any, idx: number) => {
       if (evt.year >= timeRange[0] && evt.year <= timeRange[1]) {
         cards.push({
           id: `story-event-${idx}`,
@@ -649,26 +650,25 @@ export function App() {
     });
 
     return cards;
-  }, [data, nameQuery, searchHits, indi, timeRange, majorHistoricalEvents]);
+  }, [data, nameQuery, searchHits, indi, timeRange]);
 
   return (
     <div className={`app app-wide story-${storyFocus}${tab === "home" ? " app--mobile-home" : ""}`}>
-      {/* === New Story-Driven Header === */}
-      {/* 1. Search bar as the primary header */}
-      <SearchHeader
-        value={nameQuery}
-        onChange={setNameQuery}
+      {/* === COHESIVE NARRATIVE COCKPIT === */}
+      {/* One unified, search-driven story surface at the top of the app */}
+      <NarrativeCockpit
+        nameQuery={nameQuery}
+        onNameQueryChange={setNameQuery}
+        searchHits={searchHits}
         onFocusStory={(personId) => {
           if (personId) {
             if (personId.startsWith('event-')) {
-              // Extended search hit on a history throughline (e.g. ancient ruler event)
-              // Snap timeRange to that era for deep narrative exploration (perfect for Rachtmar-3 style links)
               const yearMatch = personId.match(/event-(-?\d+)/);
               if (yearMatch) {
                 const y = parseInt(yearMatch[1]);
-                setTimeRange([y - 150, y + 150]); // generous window around the historical moment
+                setTimeRange([y - 150, y + 150]);
               }
-              setTab("deep-history" as any);
+              setTab("deep-history");
             } else {
               setRootId(personId);
               const rec = indi[personId];
@@ -678,80 +678,33 @@ export function App() {
                 const lifespanEnd = (rec?.dy || by + 80) + 50;
                 setTimeRange([Math.max(-5000, lifespanStart), Math.min(2300, lifespanEnd)]);
               }
-              setTab("deep-history" as any);
+              setTab("deep-history");
             }
           }
         }}
-        searchHits={searchHits}
+        individuals={indi}
+        families={fam}
+        rootId={rootId}
+        patIds={pat}
+        matIds={mat}
+        timeRange={timeRange}
+        mapScope={mapScope}
+        mapConnectLine={mapConnectLine}
+        mapIncludePartners={mapIncludePartners}
+        partnerOverlay={partnerOverlay}
+        patMatBirthDualLines={patMatBirthDualLines}
+        streamAccent={streamAccent}
+        proposals={readResearchProposals().filter((p) => p.status === "accepted")}
+        majorEvents={[
+          ...MAJOR_EVENTS,
+          ...forwardConnectionsToTimelineEvents(readForwardConnections()),
+          ...elderStoriesToTimelineEvents(readElderStories()),
+        ]}
+        onEventClick={(evt) => setLastTimelineEvent(evt)}
+        onExpandMap={() => setTab("map" as any)}
       />
 
-      {/* 2. Deep Narrative Timeline directly under the search header */}
-      <div style={{ padding: "8px 16px", background: "#0f1114", borderBottom: "1px solid #222a38" }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "#5ab0ff", marginBottom: 4, paddingLeft: 4 }}>
-          DEEP NARRATIVE TIMELINE
-        </div>
-        <EventTimeline
-          individuals={indi}
-          patIds={pat}
-          matIds={mat}
-          proposals={readResearchProposals().filter((p) => p.status === "accepted")}
-          majorEvents={[
-            ...MAJOR_EVENTS,
-            ...forwardConnectionsToTimelineEvents(readForwardConnections()),
-            ...elderStoriesToTimelineEvents(readElderStories()),
-          ]}
-          onEventClick={(evt) => {
-            setLastTimelineEvent(evt);
-          }}
-          timeRange={timeRange}
-          height={180}
-        />
-      </div>
-
-      {/* 3. Map window under the timeline */}
-      <div style={{ padding: "8px 16px", background: "#111418", borderBottom: "1px solid #222a38" }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: "#5ab0ff", marginBottom: 4, paddingLeft: 4 }}>
-          MAP — Filtered by current story &amp; time window
-        </div>
-        <div className="map-window" style={{ height: 240, borderRadius: 8, overflow: "hidden", border: "1px solid #2d323c", position: "relative" }}>
-          <MapView
-            individuals={indi}
-            families={fam}
-            rootId={rootId}
-            patIds={pat}
-            matIds={mat}
-            scope={mapScope}
-            connectLine={mapConnectLine}
-            includePartners={mapIncludePartners}
-            partnerOverlay={partnerOverlay}
-            embed={true}
-            showFoot={false}
-            patMatBirthDualLines={patMatBirthDualLines}
-            streamAccent={streamAccent}
-            timeRange={timeRange}
-          />
-          <button
-            onClick={() => setTab("map" as any)}
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              fontSize: 11,
-              padding: "3px 8px",
-              borderRadius: 4,
-              background: "rgba(0,0,0,0.6)",
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-              zIndex: 10,
-            }}
-          >
-            Full Map →
-          </button>
-        </div>
-      </div>
-
-      {/* Persistent TopNav / Menu items (now secondary) */}
+      {/* Secondary navigation (views + data + global slider) */}
       <TopNav
         currentTab={tab as any}
         onTabChange={(newTab) => setTab(newTab as any)}
@@ -767,11 +720,32 @@ export function App() {
         showUpgradePill={isMinimalData || isFixtureData}
       />
 
-      {/* 4. Deep Narrative Timeline Cards — reshaped by search */}
-      <div className="deep-narrative-cards">
+      {/* Deep Narrative Cards — the living story feed */}
+      <div className="deep-narrative-cards" style={{ padding: "12px 20px 20px" }}>
+        <div style={{ 
+          fontSize: 10, 
+          letterSpacing: "0.5px", 
+          color: "#5ab0ff", 
+          marginBottom: 6, 
+          display: "flex", 
+          alignItems: "center", 
+          gap: 6 
+        }}>
+          STORY BEATS
+          {storyFocus !== 'normal' && (
+            <span style={{ 
+              fontSize: 9, 
+              background: "#5ab0ff22", 
+              padding: "1px 6px", 
+              borderRadius: 3 
+            }}>
+              {storyFocus.replace('-', ' ')}
+            </span>
+          )}
+        </div>
         <DeepNarrativeCards 
           cards={currentStoryCards} 
-          title="Deep Narrative Timeline Cards (evolving with your search)"
+          title=""
         />
       </div>
 
@@ -1086,7 +1060,7 @@ export function App() {
                   onClick={() => {
                     // Reshape the entire story view for deep legendary time
                     setTimeRange([-100, 400]); // Focus on the era around Rachtmar and immediate ancestors
-                    setTab("deep-history" as any);
+                    setTab("deep-history");
                     // Add some visual emphasis by clearing narrow search if any
                     if (nameQuery) setNameQuery("");
                   }}

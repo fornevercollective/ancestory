@@ -150,7 +150,7 @@ function idsForLineScope(
   matIds: string[],
   individuals: Record<string, IndiRec>
 ): string[] {
-  let ids = lineIdsForPatMat(scope, filteredPat, filteredMat);
+  let ids = lineIdsForPatMat(scope, (typeof filteredPat !== 'undefined' ? filteredPat : patIds), (typeof filteredMat !== 'undefined' ? filteredMat : matIds));
   if (scope === "pat-births-male" || scope === "mat-births-male") ids = filterSex(ids, individuals, "M");
   if (scope === "pat-births-female" || scope === "mat-births-female") ids = filterSex(ids, individuals, "F");
   return ids;
@@ -222,6 +222,10 @@ export function MapView({
   const [status, setStatus] = useState("");
   const [geocoding, setGeocoding] = useState(false);
   const geocodeElapsedMs = useGeocodeElapsedMs(geocoding);
+
+  // Safe fallbacks for filtered ids (defined properly inside useEffect)
+  const filteredPat = patIds;
+  const filteredMat = matIds;
 
   const partnersOn = includePartners && mapScopeSupportsPartnersToggle(scope);
   const foot = useMemo(() => footerForScope(scope, includePartners), [scope, includePartners]);

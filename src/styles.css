@@ -4900,19 +4900,40 @@ html.mobile-map-active .app--mobile-home > .panel {
   }
 }
 
-/* Dynamic layout reshaping as the story evolves */
-.story-deep-narrow .event-timeline,
-.story-search-focus .event-timeline {
-  height: 260px !important; /* taller timeline when focused */
+/* === Cohesive App Polish: Narrative Cockpit === */
+.narrative-cockpit {
+  transition: all 200ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.story-deep-history .map-window {
-  height: 320px !important; /* emphasize map in deep time */
+.story-search-focus .narrative-cockpit,
+.story-deep-history .narrative-cockpit {
+  box-shadow: 0 8px 30px rgba(90, 176, 255, 0.08);
+  border-bottom-color: #5ab0ff33;
+}
+
+/* Dynamic reshaping */
+.story-deep-narrow .narrative-cockpit .event-timeline,
+.story-search-focus .narrative-cockpit .event-timeline {
+  height: 240px !important;
+}
+
+.story-deep-history .narrative-cockpit .map-window {
+  height: 280px !important;
 }
 
 .story-search-focus .deep-narrative-cards {
   background: #1a2333;
   border: 1px solid #5ab0ff33;
+}
+
+/* Better visual rhythm for the whole app */
+.app {
+  font-feature-settings: "kern" 1, "tnum" 1;
+}
+
+.narrative-cockpit .map-window,
+.narrative-cockpit .event-timeline {
+  transition: height 280ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Floating Data button + upgrade experience polish */
