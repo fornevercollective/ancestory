@@ -702,6 +702,12 @@ export function App() {
         ]}
         onEventClick={(evt) => setLastTimelineEvent(evt)}
         onExpandMap={() => setTab("map" as any)}
+        timeSliderProps={{
+          fullMin: -5000,
+          fullMax: 2300,
+          onTimeRangeChange: setTimeRange,
+          onFullTime: handleFullTime,
+        }}
       />
 
       {/* Secondary navigation (views + data + global slider) */}
@@ -718,34 +724,14 @@ export function App() {
           controls?.scrollIntoView({ behavior: 'smooth' });
         }}
         showUpgradePill={isMinimalData || isFixtureData}
+        // Note: slider props no longer needed in TopNav (moved into NarrativeCockpit next to timeline)
       />
 
-      {/* Deep Narrative Cards — the living story feed */}
+      {/* Deep Narrative Cards — the living story feed (no duplicate timeline title) */}
       <div className="deep-narrative-cards" style={{ padding: "12px 20px 20px" }}>
-        <div style={{ 
-          fontSize: 10, 
-          letterSpacing: "0.5px", 
-          color: "#5ab0ff", 
-          marginBottom: 6, 
-          display: "flex", 
-          alignItems: "center", 
-          gap: 6 
-        }}>
-          STORY BEATS
-          {storyFocus !== 'normal' && (
-            <span style={{ 
-              fontSize: 9, 
-              background: "#5ab0ff22", 
-              padding: "1px 6px", 
-              borderRadius: 3 
-            }}>
-              {storyFocus.replace('-', ' ')}
-            </span>
-          )}
-        </div>
         <DeepNarrativeCards 
           cards={currentStoryCards} 
-          title=""
+          title="Story Beats"
         />
       </div>
 

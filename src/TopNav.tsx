@@ -1,5 +1,4 @@
 import React from "react";
-import { GlobalHistorySlider } from "./GlobalHistorySlider";
 
 type Tab =
   | "home"
@@ -95,16 +94,7 @@ export function TopNav({
 
         <div style={{ flex: 1 }} />
 
-        {/* Persistent History Slider */}
-        <GlobalHistorySlider
-          minYear={fullMin}
-          maxYear={fullMax}
-          value={timeRange}
-          onChange={onTimeRangeChange}
-          onFullTime={onFullTime}
-        />
-
-        {/* Data Access */}
+        {/* Replaced search/data button with "humanity" per request - tying to the core theme of future of humanity */}
         <button
           onClick={onOpenData}
           style={{
@@ -121,7 +111,7 @@ export function TopNav({
             cursor: "pointer",
           }}
         >
-          📁 Data
+          🌍 Humanity
           {showUpgradePill && (
             <span style={{
               background: "rgba(0,0,0,0.2)",
@@ -133,10 +123,6 @@ export function TopNav({
             </span>
           )}
         </button>
-      </div>
-
-      <div style={{ fontSize: 10, opacity: 0.5, marginTop: 4, paddingLeft: 4 }}>
-        Global time filter applies to Map, Timeline, and Lineage views • Supports legendary/deep time (negative years)
       </div>
     </div>
   );

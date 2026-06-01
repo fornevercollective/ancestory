@@ -2,6 +2,7 @@ import React from "react";
 import { SearchHeader } from "./SearchHeader";
 import { EventTimeline } from "./EventTimeline";
 import { MapView } from "./MapView";
+import { GlobalHistorySlider } from "./GlobalHistorySlider";
 import type { IndiRec, FamRec } from "./types";
 import type { PartnerOverlayMap } from "./partnerOverlayStorage";
 import type { MapScope } from "./MapView";
@@ -33,6 +34,14 @@ type Props = {
   onEventClick: (evt: any) => void;
 
   onExpandMap: () => void;
+
+  // Slider props - active time window moved here to the right of timeline
+  timeSliderProps?: {
+    fullMin: number;
+    fullMax: number;
+    onTimeRangeChange: (range: [number, number]) => void;
+    onFullTime: () => void;
+  };
 };
 
 /**
@@ -62,6 +71,7 @@ export function NarrativeCockpit({
   majorEvents,
   onEventClick,
   onExpandMap,
+  timeSliderProps,
 }: Props) {
   return (
     <div className="narrative-cockpit" style={{
@@ -69,7 +79,7 @@ export function NarrativeCockpit({
       borderBottom: "1px solid #2d323c",
       boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
     }}>
-      {/* Unified header label */}
+      {/* Clean unified header - no duplicate versioning */}
       <div style={{
         padding: "6px 20px 0",
         fontSize: 10,
@@ -83,7 +93,6 @@ export function NarrativeCockpit({
       }}>
         LIVE STORY EXPLORER
         <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, #5ab0ff22, transparent)" }} />
-        <span style={{ fontSize: 9, opacity: 0.5 }}>{timeRange[0]} — {timeRange[1]}</span>
       </div>
 
       {/* 1. Search — the primary control surface */}
@@ -94,21 +103,37 @@ export function NarrativeCockpit({
         searchHits={searchHits}
       />
 
-      {/* 2. Deep Narrative Timeline — tightly coupled to search + time */}
+      {/* 2. Timeline section — active time window (slider) positioned to the right */}
       <div style={{ padding: "6px 20px 12px", background: "#0f1114" }}>
         <div style={{ 
-          fontSize: 10, 
-          fontWeight: 600, 
-          color: "#5ab0ff", 
-          marginBottom: 4, 
-          paddingLeft: 4,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
+          display: "flex", 
+          alignItems: "center", 
+          gap: 16,
+          marginBottom: 6 
         }}>
-          <span>DEEP NARRATIVE TIMELINE</span>
-          <span style={{ fontSize: 9, opacity: 0.5 }}>Filtered by search &amp; time window</span>
+          <div style={{ 
+            fontSize: 10, 
+            fontWeight: 600, 
+            color: "#5ab0ff",
+            whiteSpace: "nowrap"
+          }}>
+            TIMELINE
+          </div>
+          
+          {/* Active time window (slider) now lives to the right of the timeline */}
+          {timeSliderProps && (
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <GlobalHistorySlider
+                minYear={timeSliderProps.fullMin}
+                maxYear={timeSliderProps.fullMax}
+                value={timeRange}
+                onChange={timeSliderProps.onTimeRangeChange}
+                onFullTime={timeSliderProps.onFullTime}
+              />
+            </div>
+          )}
         </div>
+        
         <EventTimeline
           individuals={individuals}
           patIds={patIds}
