@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { IndiRec } from "./types";
 import type { ResearchProposal } from "./researchEnrichmentsStorage";
+import { MAJOR_EVENTS } from "./majorHistoricalEvents";
 import { bloodTallyForLine } from "./stagedTraitStats"; // reuse existing logic where possible
 import { formatName } from "./trace";
 
@@ -97,6 +98,20 @@ export function AncestoryOracle({
         title: "Grokipedia Augmentation Active",
         body: `This lineage carries alternative historical context from Grokipedia. These narratives often diverge from mainstream sources — they represent a different model of what "truth" about the past looks like in 2026+. The robot historian has opinions.`,
         confidence: 0.88,
+      });
+    }
+
+    // 6. Connection to major historical / space events
+    const relevantEvents = MAJOR_EVENTS.filter((e) => {
+      const rootYear = birthYear(individuals[rootId]);
+      return rootYear && Math.abs(e.year - rootYear) < 300;
+    });
+    if (relevantEvents.length > 0) {
+      ins.push({
+        icon: "📜",
+        title: "Anchored in Deep History",
+        body: `This lineage overlaps with ${relevantEvents.length} major recorded events (including scientific and early space milestones). Your personal story is not separate from the big arcs of human (and soon multi-planetary) civilization.`,
+        confidence: 0.81,
       });
     }
 

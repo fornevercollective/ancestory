@@ -43,6 +43,7 @@ import { EventTimeline } from "./EventTimeline";
 import { readResearchProposals } from "./researchEnrichmentsStorage";
 import { AncestoryOracle } from "./AncestoryOracle";
 import { LineageCompatibility } from "./LineageCompatibility";
+import { MAJOR_EVENTS } from "./majorHistoricalEvents";
 import type { FaceShape } from "./faceShapeStorage";
 import {
   ancestorSet,
@@ -991,6 +992,12 @@ export function App() {
                           patIds={pat}
                           matIds={mat}
                           proposals={readResearchProposals().filter((p) => p.status === "accepted")}
+                          majorEvents={MAJOR_EVENTS}
+                          onEventClick={(evt) => {
+                            // Timeline is the star — clicking an event gives rich feedback
+                            console.log("[Ancestory Timeline Event]", evt);
+                            // Future: highlight related places on map, open details, filter proposals, etc.
+                          }}
                         />
 
                         <AncestoryOracle

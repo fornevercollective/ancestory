@@ -10,6 +10,8 @@ import { OsintWorkbench } from "./OsintWorkbench";
 import { PlaceCurationPanel } from "./PlaceCurationPanel";
 import { ResearchProposalsPanel } from "./ResearchProposalsPanel";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
+import { EventTimeline } from "./EventTimeline";
+import { MAJOR_EVENTS } from "./majorHistoricalEvents";
 import { WorldDirectoryPage } from "./WorldDirectoryPage";
 import { DualPortraitColumns } from "./DualPortraitColumns";
 import {
@@ -242,6 +244,21 @@ export function MobileOnePage({
       </section>
 
       <PWAInstallPrompt />
+
+      {/* The Horizontal Timeline is now a first-class citizen — deep personal + historical + space stories */}
+      <section className="mobile-section" id="mobile-timeline" aria-labelledby="mobile-timeline-h">
+        <h2 id="mobile-timeline-h" className="mobile-section-h">
+          Deep Narrative Timeline
+        </h2>
+        <EventTimeline
+          individuals={individuals}
+          patIds={[]} // Mobile view can be simplified; full version in desktop
+          matIds={[]}
+          proposals={[]}
+          majorEvents={MAJOR_EVENTS}
+          height={260}
+        />
+      </section>
 
       <section className="mobile-section mobile-section--directory" id="mobile-directory" aria-labelledby="mobile-directory-h">
         <h2 id="mobile-directory-h" className="mobile-section-h">
