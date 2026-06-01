@@ -38,6 +38,7 @@ export function EventTimeline({
   partnerOverlay,
   height = 380,
   majorEvents = [],
+  onEventClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
