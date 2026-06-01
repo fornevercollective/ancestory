@@ -113,7 +113,7 @@ export function ResearchProposalsPanel() {
                 {p.status === "proposed" && (
                   <>
                     <button className="btn btn-small" onClick={() => handleAccept(p)}>
-                      Accept &amp; Lock Places
+                      Accept &amp; Lock Places (maps + timeline)
                     </button>
                     <button className="btn btn-small" onClick={() => handleDismiss(p.id)}>
                       Dismiss

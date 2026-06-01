@@ -147,6 +147,7 @@ export function App() {
   const [patMatBirthDualLines, setPatMatBirthDualLines] = useState(false);
   /** Which stream gets the thicker line when dual birth throughlines are on */
   const [streamAccent, setStreamAccent] = useState<"pat" | "mat">("pat");
+  const [lastTimelineEvent, setLastTimelineEvent] = useState<{ year: number; label: string; type: string } | null>(null);
   /** Path map above dual summary (same scope as Map tab) */
   const [dualShowPathMap, setDualShowPathMap] = useState(true);
   const [dualMapFull, setDualMapFull] = useState(false);
@@ -1004,6 +1005,7 @@ export function App() {
                           ]}
                           onEventClick={(evt) => {
                             // Timeline is the star — clicking an event gives rich feedback
+                            setLastTimelineEvent(evt);
                             console.log("[Ancestory Timeline Event]", evt);
                             // Future: highlight related places on map, open details, filter proposals, etc.
                           }}
@@ -1492,9 +1494,17 @@ export function App() {
             {tab === "map" && (
               <div className="map-tab">
                 <p className="map-tab-lead">
-                  Same plot settings as the path map on <strong>Dual lines</strong> (Plot / Connect
-                  line). Use this tab for a larger canvas or when the dual embed is hidden.
+                  Full story layer active: partners, travel, historical events, elder knowledge, forward branches.
+                  Use Place Curation and the new story panels to lock coordinates for instant, rich maps.
                 </p>
+                <p className="map-tab-lead" style={{ fontSize: "0.8rem", marginTop: -8 }}>
+                  Same controls as the embedded map on Dual lines. Click events on the Deep Narrative Timeline to explore.
+                </p>
+                {lastTimelineEvent && (
+                  <div style={{ fontSize: "0.75rem", marginTop: 4, padding: "4px 8px", background: "rgba(0,0,0,0.2)", borderRadius: 4 }}>
+                    Last timeline event: <strong>{lastTimelineEvent.label}</strong> ({lastTimelineEvent.year}) — {lastTimelineEvent.type}
+                  </div>
+                )}
                 <div className="map-toolbar">
                   <label className="dual-label grow dual-label-mapscope">
                     <span>What to show</span>

@@ -193,7 +193,7 @@ function footerForScope(scope: MapScope, includePartners: boolean): string {
         : "";
     return `Patriline / matriline maps follow root → furthest ancestor order; the path draws segment-by-segment as each place resolves (cached places are instant).${sp}`;
   }
-  return "Dark basemap (CARTO + OSM). Full story layer active: partners, travel, historical events, elder knowledge & forward branches. Persistent Place Ledger makes everything fast.";
+  return "Dark basemap (CARTO + OSM). Full story layer: partners • travel • historical events • elder knowledge • forward branches. Use Place Curation to lock story places for instant maps.";
 }
 
 export function MapView({

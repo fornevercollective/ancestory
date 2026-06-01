@@ -200,6 +200,9 @@ export function PlaceCurationPanel({ individuals, onLedgerChange }: Props) {
       </summary>
 
       <div style={{ marginTop: "0.75rem" }}>
+        <div style={{ fontSize: "0.75rem", marginBottom: 6, opacity: 0.7 }}>
+          Story sources: Tree • Research Proposals • Elder Stories • Forward Branches • Historical Events • Partners
+        </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
           <button onClick={geocodeMissing} disabled={loading}>
             Geocode all missing ({stats.missing})
@@ -295,8 +298,8 @@ export function PlaceCurationPanel({ individuals, onLedgerChange }: Props) {
         </div>
 
         <div className="muted" style={{ marginTop: "0.5rem", fontSize: "0.75rem" }}>
-          Places come from birth, death, residences, burials, marriage/divorce, elder stories, forward branches, and research proposals.
-          Locked coordinates power the entire story layer (maps + timeline + Oracle + Resonance).
+          Places come from birth, death, residences, burials, marriage/divorce, elder stories, forward branches, research proposals, and major historical events.
+          Locked coordinates power the entire story layer (maps + timeline + Oracle + Resonance + ancestral matching).
         </div>
       </div>
     </details>
