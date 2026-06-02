@@ -13,6 +13,7 @@ import { ResearchProposalsPanel } from "./ResearchProposalsPanel";
 import { PWAInstallPrompt } from "./PWAInstallPrompt";
 import { MobileHomeShell } from "./MobileHomeShell";
 import { WorldDirectoryPage } from "./WorldDirectoryPage";
+import { useIsMobile } from "./useIsMobile";
 import {
   genreSortWeight,
   identitySignal,
@@ -152,6 +153,9 @@ export function App() {
   /** Which stream gets the thicker line when dual birth throughlines are on */
   const [streamAccent, setStreamAccent] = useState<"pat" | "mat">("pat");
   const [lastTimelineEvent, setLastTimelineEvent] = useState<{ year: number; label: string; type: string } | null>(null);
+
+  // Responsive: auto-detect mobile vs desktop by screen width so we don't duplicate menus
+  const isMobile = useIsMobile(720);
 
   // === New: Global persistent history slider state ===
   // Supports deep time (negative years) for legendary/ancient figures like Felim Rachtmar and beyond.
@@ -674,63 +678,8 @@ export function App() {
   }
 
   return (
-    <div className={`app app-wide story-${storyFocus}${tab === "home" ? " app--mobile-home" : ""}`}>
-      {/* === COHESIVE NARRATIVE COCKPIT === */}
-      <NarrativeCockpit
-        nameQuery={nameQuery}
-        onNameQueryChange={setNameQuery}
-        searchHits={searchHits}
-        onFocusStory={(personId) => {
-          if (personId) {
-            if (personId.startsWith('event-')) {
-              const yearMatch = personId.match(/event-(-?\d+)/);
-              if (yearMatch) {
-                const y = parseInt(yearMatch[1]);
-                setTimeRange([y - 150, y + 150]);
-              }
-              setTab("deep-history");
-            } else {
-              setRootId(personId);
-              const rec = indi[personId];
-              const by = birthYear(rec);
-              if (by != null) {
-                const lifespanStart = by - 30;
-                const lifespanEnd = (rec?.dy || by + 80) + 50;
-                setTimeRange([Math.max(-5000, lifespanStart), Math.min(2300, lifespanEnd)]);
-              }
-              setTab("deep-history");
-            }
-          }
-        }}
-        individuals={indi}
-        families={fam}
-        rootId={rootId}
-        patIds={pat}
-        matIds={mat}
-        timeRange={timeRange}
-        mapScope={mapScope}
-        mapConnectLine={mapConnectLine}
-        mapIncludePartners={mapIncludePartners}
-        partnerOverlay={partnerOverlay}
-        patMatBirthDualLines={patMatBirthDualLines}
-        streamAccent={streamAccent}
-        proposals={readResearchProposals().filter((p) => p.status === "accepted")}
-        majorEvents={[
-          ...MAJOR_EVENTS,
-          ...forwardConnectionsToTimelineEvents(readForwardConnections()),
-          ...elderStoriesToTimelineEvents(readElderStories()),
-        ]}
-        onEventClick={(evt) => setLastTimelineEvent(evt)}
-        onExpandMap={() => setTab("map" as any)}
-        timeSliderProps={{
-          fullMin: -5000,
-          fullMax: 2300,
-          onTimeRangeChange: setTimeRange,
-          onFullTime: handleFullTime,
-        }}
-      />
-
-      {/* Secondary navigation */}
+    <div className={`app app-wide app-with-topnav story-${storyFocus}${tab === "home" && isMobile ? " app--mobile-home" : ""}`}>
+      {/* Primary navigation — sticky header, always at top */}
       <TopNav
         currentTab={tab as any}
         onTabChange={(newTab) => setTab(newTab as any)}
@@ -739,20 +688,83 @@ export function App() {
         fullMin={-5000}
         fullMax={2300}
         onFullTime={handleFullTime}
-        onOpenData={() => {
-          const controls = document.querySelector('.controls');
-          controls?.scrollIntoView({ behavior: 'smooth' });
+        onOpenHumanity={() => {
+          if (isMinimalData || isFixtureData) {
+            const controls = document.querySelector(".controls");
+            controls?.scrollIntoView({ behavior: "smooth" });
+            return;
+          }
+          setTab("directory");
         }}
         showUpgradePill={isMinimalData || isFixtureData}
       />
 
-      {/* Deep Narrative Cards — the living story feed (no duplicate timeline title) */}
-      <div className="deep-narrative-cards" style={{ padding: "12px 20px 20px" }}>
-        <DeepNarrativeCards 
-          cards={currentStoryCards} 
-          title="Story Beats"
+      {/* Story surface — search, timeline (with slider to the right), map */}
+      {tab !== "directory" && (
+        <NarrativeCockpit
+          nameQuery={nameQuery}
+          onNameQueryChange={setNameQuery}
+          searchHits={searchHits}
+          onFocusStory={(personId) => {
+            if (personId) {
+              if (personId.startsWith('event-')) {
+                const yearMatch = personId.match(/event-(-?\d+)/);
+                if (yearMatch) {
+                  const y = parseInt(yearMatch[1]);
+                  setTimeRange([y - 150, y + 150]);
+                }
+                setTab("deep-history");
+              } else {
+                setRootId(personId);
+                const rec = indi[personId];
+                const by = birthYear(rec);
+                if (by != null) {
+                  const lifespanStart = by - 30;
+                  const lifespanEnd = (rec?.dy || by + 80) + 50;
+                  setTimeRange([Math.max(-5000, lifespanStart), Math.min(2300, lifespanEnd)]);
+                }
+                setTab("deep-history");
+              }
+            }
+          }}
+          individuals={indi}
+          families={fam}
+          rootId={rootId}
+          patIds={pat}
+          matIds={mat}
+          timeRange={timeRange}
+          mapScope={mapScope}
+          mapConnectLine={mapConnectLine}
+          mapIncludePartners={mapIncludePartners}
+          partnerOverlay={partnerOverlay}
+          patMatBirthDualLines={patMatBirthDualLines}
+          streamAccent={streamAccent}
+          proposals={readResearchProposals().filter((p) => p.status === "accepted")}
+          majorEvents={[
+            ...MAJOR_EVENTS,
+            ...forwardConnectionsToTimelineEvents(readForwardConnections()),
+            ...elderStoriesToTimelineEvents(readElderStories()),
+          ]}
+          onEventClick={(evt) => setLastTimelineEvent(evt)}
+          onExpandMap={() => setTab("map" as any)}
+          timeSliderProps={{
+            fullMin: -5000,
+            fullMax: 2300,
+            onTimeRangeChange: setTimeRange,
+            onFullTime: handleFullTime,
+          }}
         />
-      </div>
+      )}
+
+      {/* Deep Narrative Cards — living story feed */}
+      {tab !== "directory" && (
+        <div className="deep-narrative-cards" style={{ padding: "12px 20px 20px" }}>
+          <DeepNarrativeCards 
+            cards={currentStoryCards} 
+            title="Story Beats"
+          />
+        </div>
+      )}
 
       {!rulersTestPath && tab !== "home" && <OsintResearchPanel />}
 
@@ -1127,7 +1139,9 @@ export function App() {
               </section>
             )}
 
-            {tab === "home" && (
+            {/* Mobile-only home experience (one-page shell + bottom tab menu).
+                On desktop we use the regular panels + TopNav instead of duplicating menus. */}
+            {tab === "home" && isMobile && (
               <MobileHomeShell
                 rootId={rootId}
                 rootLabel={rootLabel}

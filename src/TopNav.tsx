@@ -7,6 +7,7 @@ type Tab =
   | "matriline"
   | "map"
   | "rulers"
+  | "directory"
   | "deep-history"
   | "search";
 
@@ -18,7 +19,8 @@ type Props = {
   fullMin: number;
   fullMax: number;
   onFullTime: () => void;
-  onOpenData: () => void;
+  /** Opens World directory, or data upgrade when demo tree is loaded */
+  onOpenHumanity: () => void;
   showUpgradePill?: boolean;
 };
 
@@ -26,6 +28,7 @@ const TABS: { key: Tab; label: string; icon?: string }[] = [
   { key: "home", label: "Home", icon: "🏠" },
   { key: "dual", label: "Dual Lines", icon: "⇄" },
   { key: "map", label: "Map", icon: "🗺️" },
+  { key: "directory", label: "World", icon: "🌐" },
   { key: "rulers", label: "Rulers", icon: "👑" },
   { key: "deep-history", label: "Deep History", icon: "⏳" },
   { key: "search", label: "Search", icon: "🔍" },
@@ -39,91 +42,47 @@ export function TopNav({
   fullMin,
   fullMax,
   onFullTime,
-  onOpenData,
+  onOpenHumanity,
   showUpgradePill,
 }: Props) {
   return (
-    <div style={{
-      position: "sticky",
-      top: 0,
-      zIndex: 100,
-      background: "rgba(15, 17, 20, 0.96)",
-      backdropFilter: "blur(12px)",
-      borderBottom: "1px solid var(--border)",
-      padding: "8px 16px",
-    }}>
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        flexWrap: "wrap",
-      }}>
+    <header className="top-nav" aria-label="Main navigation">
+      <div className="top-nav-inner">
         {/* Brand */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>
-            Ancestory
-          </div>
-          <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>deep time • private</div>
+        <div className="top-nav-brand">
+          <div className="top-nav-title">Ancestory</div>
+          <div className="top-nav-tagline">deep time • private</div>
         </div>
 
         {/* Main Navigation */}
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <div className="top-nav-tabs">
           {TABS.map((t) => (
             <button
               key={t.key}
+              type="button"
               onClick={() => onTabChange(t.key)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: currentTab === t.key ? "1px solid #5ab0ff" : "1px solid transparent",
-                background: currentTab === t.key ? "rgba(90, 176, 255, 0.12)" : "transparent",
-                color: currentTab === t.key ? "#c9d4e8" : "#9aa0a6",
-                fontSize: 13,
-                fontWeight: currentTab === t.key ? 600 : 500,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-              }}
+              className={`top-nav-tab${currentTab === t.key ? " top-nav-tab--active" : ""}`}
+              aria-current={currentTab === t.key ? "page" : undefined}
             >
-              {t.icon && <span>{t.icon}</span>}
+              {t.icon && <span aria-hidden="true">{t.icon}</span>}
               {t.label}
             </button>
           ))}
         </div>
 
-        <div style={{ flex: 1 }} />
+        <div className="top-nav-spacer" />
 
-        {/* Replaced search/data button with "humanity" per request - tying to the core theme of future of humanity */}
         <button
-          onClick={onOpenData}
-          style={{
-            padding: "8px 14px",
-            borderRadius: 999,
-            background: showUpgradePill ? "#5ab0ff" : "var(--panel)",
-            color: showUpgradePill ? "#111" : "#c9d4e8",
-            border: "1px solid var(--border)",
-            fontSize: 13,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            cursor: "pointer",
-          }}
+          type="button"
+          onClick={onOpenHumanity}
+          className={`top-nav-humanity${showUpgradePill ? " top-nav-humanity--upgrade" : ""}${currentTab === "directory" ? " top-nav-humanity--active" : ""}`}
+          aria-current={currentTab === "directory" ? "page" : undefined}
+          title={showUpgradePill ? "Upgrade demo data" : "World name directory — tribes, etymology, hominins"}
         >
           🌍 Humanity
-          {showUpgradePill && (
-            <span style={{
-              background: "rgba(0,0,0,0.2)",
-              padding: "0 6px",
-              borderRadius: 999,
-              fontSize: 10,
-            }}>
-              Upgrade
-            </span>
-          )}
+          {showUpgradePill && <span className="top-nav-upgrade-pill">Upgrade</span>}
         </button>
       </div>
-    </div>
+    </header>
   );
 }

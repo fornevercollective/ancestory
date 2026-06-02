@@ -203,6 +203,138 @@ html[data-identity-genre="untagged"] body {
   max-width: min(1200px, 100%);
 }
 
+/* TopNav — first element, sticky flush to viewport top */
+.app-with-topnav {
+  padding-top: 0;
+}
+
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 110;
+  margin: 0 -1rem;
+  background: rgba(15, 17, 20, 0.96);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.top-nav-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+}
+
+.top-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-nav-title {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.top-nav-tagline {
+  font-size: 10px;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.top-nav-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.top-nav-tab {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #9aa0a6;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.top-nav-tab--active {
+  border-color: #5ab0ff;
+  background: rgba(90, 176, 255, 0.12);
+  color: #c9d4e8;
+  font-weight: 600;
+}
+
+.top-nav-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-nav-humanity {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: #c9d4e8;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.top-nav-humanity--upgrade {
+  background: #5ab0ff;
+  color: #111;
+}
+
+.top-nav-humanity--active:not(.top-nav-humanity--upgrade) {
+  border-color: #5ab0ff;
+  color: #c9d4e8;
+  background: rgba(90, 176, 255, 0.12);
+}
+
+.top-nav-upgrade-pill {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+@media (max-width: 720px) {
+  .app--mobile-home .narrative-cockpit,
+  .app--mobile-home .deep-narrative-cards {
+    display: none;
+  }
+
+  .top-nav-inner {
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .top-nav-tagline {
+    display: none;
+  }
+
+  .top-nav-tab {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .top-nav-humanity {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
 .hdr h1 {
   margin: 0 0 0.35rem;
   font-size: 1.35rem;
