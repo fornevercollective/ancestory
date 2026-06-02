@@ -652,10 +652,30 @@ export function App() {
     return cards;
   }, [data, nameQuery, searchHits, indi, timeRange]);
 
+  // Guard: Don't render the full story UI until we have at least attempted to load data.
+  // This prevents early crashes in heavy components (Map, Timeline, etc.) on initial blank data.
+  if (!data) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: '#0f1114',
+        color: '#9aa0a6',
+        fontFamily: 'system-ui'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 18, marginBottom: 8 }}>Loading Ancestory…</div>
+          <div style={{ fontSize: 13, opacity: 0.6 }}>Fetching your story data</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`app app-wide story-${storyFocus}${tab === "home" ? " app--mobile-home" : ""}`}>
       {/* === COHESIVE NARRATIVE COCKPIT === */}
-      {/* One unified, search-driven story surface at the top of the app */}
       <NarrativeCockpit
         nameQuery={nameQuery}
         onNameQueryChange={setNameQuery}
@@ -710,7 +730,7 @@ export function App() {
         }}
       />
 
-      {/* Secondary navigation (views + data + global slider) */}
+      {/* Secondary navigation */}
       <TopNav
         currentTab={tab as any}
         onTabChange={(newTab) => setTab(newTab as any)}
@@ -724,7 +744,6 @@ export function App() {
           controls?.scrollIntoView({ behavior: 'smooth' });
         }}
         showUpgradePill={isMinimalData || isFixtureData}
-        // Note: slider props no longer needed in TopNav (moved into NarrativeCockpit next to timeline)
       />
 
       {/* Deep Narrative Cards — the living story feed (no duplicate timeline title) */}
